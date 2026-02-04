@@ -1,2 +1,4 @@
 # MonetIA
-es una aplicación financiera asistida por inteligencia artificial cuyo objetivo es ayudar a las personas a entender y organizar sus finanzas personales de forma clara, humana y accionable, especialmente a usuarios sin formación financiera.
+MonetIA es una aplicación web orientada a apoyar a empresas y equipos de trabajo en la planificación, control y análisis predictivo del presupuesto de proyectos, integrando técnicas de inteligencia artificial para anticipar desviaciones financieras y apoyar la toma de decisiones.
+
+A diferencia de las herramientas tradicionales, MonetIA no se limita a presentar información financiera, sino que analiza, advierte y recomienda acciones correctivas basadas en datos.
