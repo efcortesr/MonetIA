@@ -1,2 +1,3 @@
-# MonetIA
+# MonetIA ![Generated Image February 09, 2026 - 8_46PM](https://github.com/user-attachments/assets/18a0df29-66ef-4018-8bba-1931f5347144)
+
 La mayoría de equipos y pymes pierden entre 20% y 50% de rentabilidad en proyectos porque detectan los sobrecostos demasiado tarde: dependen de Excel, no anticipan riesgos y toman decisiones cuando el daño ya está hecho. MonetIA es la app web que cambia eso: permite planificar presupuestos claros por proyecto, registrar gastos en tiempo real y —lo más importante— usa inteligencia artificial para predecir desviaciones, lanzar alertas tempranas y dar recomendaciones accionables antes de que el problema explote. No solo muestra números: piensa, advierte y recomienda.No es otro dashboard de números. Es un asesor financiero proactivo dentro de tu proyecto. Nuestro MVP estará enfocado en lo esencial: fácil onboarding, seguimiento real-time y predicciones básicas con alertas.
