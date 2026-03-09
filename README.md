@@ -16,10 +16,9 @@ pip install -r requirements.txt
 ```
     
 ```powershell
+cd src
+copy .env.example .env
 python manage.py migrate
-```
-    
-```powershell
 python manage.py runserver
 ```
 
