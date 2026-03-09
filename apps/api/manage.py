@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 import os
 import sys
+import pathlib
+
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
 def main() -> None:
