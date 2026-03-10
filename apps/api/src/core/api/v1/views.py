@@ -1,61 +1,35 @@
+from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
+from core.models import Category, Expense, Project, ProjectRole
+from .serializers import CategorySerializer, ExpenseSerializer, ProjectRoleSerializer, ProjectSerializer
 
 
-class ProjectsViewSet(ViewSet):
+class ProjectsViewSet(viewsets.ModelViewSet):
+  queryset = Project.objects.select_related("owner").all().order_by("id")
+  serializer_class = ProjectSerializer
+
+
+class ProjectRolesViewSet(viewsets.ModelViewSet):
+  queryset = ProjectRole.objects.select_related("project").all().order_by("id")
+  serializer_class = ProjectRoleSerializer
+
+
+class ExpensesViewSet(viewsets.ModelViewSet):
+  queryset = Expense.objects.select_related("project", "category", "user").all().order_by("id")
+  serializer_class = ExpenseSerializer
+
+
+class CategoriesViewSet(viewsets.ModelViewSet):
+  queryset = Category.objects.all().order_by("id")
+  serializer_class = CategorySerializer
+
+
+class AlertsViewSet(viewsets.ViewSet):
   def list(self, request):
-    data = [
-      {
-        "id": "ecom",
-        "name": "Plataforma E-Commerce v2",
-        "status": "En riesgo",
-        "budget": 450000,
-        "spent": 312000,
-      },
-      {
-        "id": "mobile",
-        "name": "App Móvil Clientes",
-        "status": "Activo",
-        "budget": 230000,
-        "spent": 145000,
-      },
-    ]
-    return Response({"results": data})
+    return Response({"results": []})
 
 
-class AlertsViewSet(ViewSet):
+class RecommendationsViewSet(viewsets.ViewSet):
   def list(self, request):
-    data = [
-      {
-        "id": "a1",
-        "title": "Incremento de costos de infraestructura",
-        "severity": "high",
-        "projectId": "ecom",
-      },
-      {
-        "id": "a2",
-        "title": "Horas extra por encima de lo planificado",
-        "severity": "medium",
-        "projectId": "ecom",
-      },
-    ]
-    return Response({"results": data})
-
-
-class RecommendationsViewSet(ViewSet):
-  def list(self, request):
-    data = [
-      {
-        "id": "r1",
-        "priority": "Alta",
-        "title": "Renegociar contrato con proveedor de hosting",
-        "projectId": "ecom",
-      },
-      {
-        "id": "r2",
-        "priority": "Media",
-        "title": "Consolidar licencias de software",
-        "projectId": "mobile",
-      },
-    ]
-    return Response({"results": data})
+    return Response({"results": []})

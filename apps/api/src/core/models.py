@@ -1,5 +1,8 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
+from django.db.models import Sum
 
 
 class UserProfile(models.Model):
@@ -36,6 +39,32 @@ class Project(models.Model):
 
   def __str__(self):
     return self.name
+
+  @property
+  def total_expenses(self):
+    return self.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+  @property
+  def total_roles_cost(self):
+    return self.roles.aggregate(total=Sum("salary"))["total"] or Decimal("0.00")
+
+  @property
+  def total_spent(self):
+    return self.total_expenses + self.total_roles_cost
+
+  @property
+  def remaining_budget(self):
+    return self.budget - self.total_spent
+
+
+class ProjectRole(models.Model):
+  project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="roles")
+  name = models.CharField(max_length=120)
+  salary = models.DecimalField(max_digits=14, decimal_places=2)
+
+  class Meta:
+    db_table = "project_roles"
+    unique_together = ("project", "name")
 
 
 class Expense(models.Model):
