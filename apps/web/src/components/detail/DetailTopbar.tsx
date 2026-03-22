@@ -28,7 +28,7 @@ export function DetailTopbar() {
                 strokeLinecap="round"
               />
             </svg>
-            <span className="truncate">Search projects...</span>
+            <span className="truncate">Busqueda de proyectos...</span>
           </div>
         </div>
 
@@ -44,7 +44,7 @@ export function DetailTopbar() {
             className="inline-flex h-9 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <span className="text-lg leading-none">+</span>
-            New Project
+            Nuevo Proyecto 
           </Link>
         </div>
       </div>
