@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { Sidebar } from "@/components/app/Sidebar";
-import { Topbar } from "@/components/app/Topbar";
+import { Sidebar } from "@/components/Sidebar";
+import { Topbar } from "@/components/Topbar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
