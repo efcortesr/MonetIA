@@ -8,7 +8,7 @@ import {
   ExpenseItem,
   RoleForm,
   RoleItem,
-} from "@/components/project-forms";
+} from "@/components/forms/project-forms";
 import {
   getProject,
   listProjectExpenses,
