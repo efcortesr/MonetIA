@@ -22,9 +22,9 @@ export function DetailSidebar() {
         </div>
         <div>
           <div className="text-sm font-semibold leading-5 text-zinc-900">
-            BudgetAI
+            MonetIA
           </div>
-          <div className="text-xs text-zinc-500">Enterprise</div>
+          <div className="text-xs text-zinc-500">Empresa</div>
         </div>
       </div>
 
@@ -54,9 +54,9 @@ export function DetailSidebar() {
           <div className="h-10 w-10 rounded-full bg-zinc-100" />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-zinc-900">
-              Alex Morgan
+              Prueba
             </div>
-            <div className="truncate text-xs text-zinc-500">alex@budgetai.com</div>
+            <div className="truncate text-xs text-zinc-500">prueba@monetia.com</div>
           </div>
         </div>
       </div>

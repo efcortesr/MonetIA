@@ -1,67 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
+import { useState, useTransition } from "react";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import { createExpense, createProjectRole, listCategories, type ApiCategory } from "@/lib/projects-api";
+import type { ApiCategory, ApiExpense, ApiProjectRole } from "@/lib/projects-api";
+import { createExpenseAction, deleteExpenseAction } from "@/app/actions/expense-actions";
+import { createRoleAction, deleteRoleAction } from "@/app/actions/role-actions";
 
-interface ProjectDetailPageProps {
+// ─── Expense Form ────────────────────────────────────────────────────────────
+
+interface ExpenseFormProps {
   projectId: string;
+  categories: ApiCategory[];
 }
 
-export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [categories, setCategories] = useState<ApiCategory[]>([]);
+export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
   const [showForm, setShowForm] = useState(false);
-
-  // Load categories when form is shown
-  const loadCategories = async () => {
-    if (categories.length === 0) {
-      try {
-        const cats = await listCategories();
-        console.log("Categories loaded:", cats);
-        setCategories(cats);
-      } catch (error) {
-        console.error("Error loading categories:", error);
-      }
-    }
-  };
-
-  const handleShowForm = () => {
-    setShowForm(true);
-    loadCategories();
-  };
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (formData: FormData) => {
-    setIsSubmitting(true);
-    
-    try {
-      const expense = {
-        project: Number(projectId),
-        category: Number(formData.get("category")),
-        amount: formData.get("amount") as string,
-        description: formData.get("description") as string,
-        date: formData.get("date") as string,
-      };
-      
-      await createExpense(expense);
-      
-      // Reset form and refresh page
+    formData.append("projectId", projectId);
+    startTransition(async () => {
+      await createExpenseAction(formData);
       setShowForm(false);
-      router.refresh();
-    } catch (error) {
-      console.error("Error creating expense:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   if (!showForm) {
     return (
       <button
-        onClick={handleShowForm}
+        onClick={() => setShowForm(true)}
         className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
       >
         + Registrar gasto
@@ -70,9 +37,9 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
   }
 
   return (
-    <Card className="p-0">
+    <Card className="p-0 mt-4">
       <CardHeader title="Registrar nuevo gasto" />
-      <CardBody className="space-y-4">
+      <CardBody>
         <form action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
@@ -83,14 +50,14 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
                 type="text"
                 name="description"
                 required
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="Ej: Licencia de software"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Monto
+                Monto (USD)
               </label>
               <input
                 type="number"
@@ -98,11 +65,11 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
                 required
                 step="0.01"
                 min="0"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="1000.00"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Categoría
@@ -110,11 +77,9 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
               <select
                 name="category"
                 required
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
-                <option value="">
-                  {categories.length === 0 ? "Cargando categorías..." : "Seleccionar categoría"}
-                </option>
+                <option value="">Seleccionar categoría</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -122,7 +87,7 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
                 ))}
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
                 Fecha
@@ -131,25 +96,26 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
                 type="date"
                 name="date"
                 required
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+              disabled={isPending}
+              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isPending}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Registrando..." : "Registrar gasto"}
+              {isPending ? "Registrando…" : "Registrar gasto"}
             </button>
           </div>
         </form>
@@ -158,31 +124,82 @@ export function ExpenseForm({ projectId }: ProjectDetailPageProps) {
   );
 }
 
-export function RoleForm({ projectId }: ProjectDetailPageProps) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+// ─── Expense List Item (with delete) ─────────────────────────────────────────
+
+interface ExpenseItemProps {
+  expense: ApiExpense;
+  projectId: string;
+}
+
+export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = () => {
+    if (!confirm("¿Eliminar este gasto?")) return;
+    startTransition(async () => {
+      await deleteExpenseAction(expense.id, projectId);
+    });
+  };
+
+  const formattedAmount = Number(expense.amount).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
+
+  return (
+    <div
+      className={`flex items-center justify-between border-b border-zinc-100 pb-2 text-sm last:border-0 last:pb-0 transition-opacity ${
+        isPending ? "opacity-40 pointer-events-none" : ""
+      }`}
+    >
+      <div className="min-w-0">
+        <div className="font-medium text-zinc-800 truncate">
+          {expense.description || "Gasto sin descripción"}
+        </div>
+        <div className="text-xs text-zinc-500 mt-0.5">{expense.date}</div>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="font-semibold text-zinc-800">${formattedAmount}</span>
+        <button
+          onClick={handleDelete}
+          className="text-zinc-400 hover:text-rose-600 transition-colors"
+          title="Eliminar gasto"
+          aria-label="Eliminar gasto"
+        >
+          {isPending ? (
+            <span className="text-xs">…</span>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Role Form ────────────────────────────────────────────────────────────────
+
+interface RoleFormProps {
+  projectId: string;
+}
+
+export function RoleForm({ projectId }: RoleFormProps) {
   const [showForm, setShowForm] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (formData: FormData) => {
-    setIsSubmitting(true);
-    
-    try {
-      const role = {
-        project: Number(projectId),
-        name: formData.get("name") as string,
-        salary: formData.get("salary") as string,
-      };
-      
-      await createProjectRole(role);
-      
-      // Reset form and refresh page
+    formData.append("projectId", projectId);
+    startTransition(async () => {
+      await createRoleAction(formData);
       setShowForm(false);
-      router.refresh();
-    } catch (error) {
-      console.error("Error creating role:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   if (!showForm) {
@@ -197,9 +214,9 @@ export function RoleForm({ projectId }: ProjectDetailPageProps) {
   }
 
   return (
-    <Card className="p-0">
+    <Card className="p-0 mt-4">
       <CardHeader title="Agregar nuevo rol" />
-      <CardBody className="space-y-4">
+      <CardBody>
         <form action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
@@ -210,14 +227,14 @@ export function RoleForm({ projectId }: ProjectDetailPageProps) {
                 type="text"
                 name="name"
                 required
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="Ej: Desarrollador Senior"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Salario mensual
+                Salario mensual (USD)
               </label>
               <input
                 type="number"
@@ -225,30 +242,89 @@ export function RoleForm({ projectId }: ProjectDetailPageProps) {
                 required
                 step="0.01"
                 min="0"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="2500.00"
               />
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+              disabled={isPending}
+              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isPending}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Agregando..." : "Agregar rol"}
+              {isPending ? "Agregando…" : "Agregar rol"}
             </button>
           </div>
         </form>
       </CardBody>
     </Card>
+  );
+}
+
+// ─── Role List Item (with delete) ─────────────────────────────────────────────
+
+interface RoleItemProps {
+  role: ApiProjectRole;
+  projectId: string;
+}
+
+export function RoleItem({ role, projectId }: RoleItemProps) {
+  const [isPending, startTransition] = useTransition();
+
+  const handleDelete = () => {
+    if (!confirm(`¿Eliminar el rol "${role.name}"?`)) return;
+    startTransition(async () => {
+      await deleteRoleAction(role.id, projectId);
+    });
+  };
+
+  const formattedSalary = Number(role.salary).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
+
+  return (
+    <div
+      className={`flex items-center justify-between rounded-xl border border-zinc-100 p-3 transition-opacity ${
+        isPending ? "opacity-40 pointer-events-none" : ""
+      }`}
+    >
+      <div>
+        <div className="text-sm font-semibold text-zinc-900">{role.name}</div>
+        <div className="text-xs text-zinc-500">Salario mensual</div>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-zinc-800">${formattedSalary}</span>
+        <button
+          onClick={handleDelete}
+          className="text-zinc-400 hover:text-rose-600 transition-colors"
+          title="Eliminar rol"
+          aria-label="Eliminar rol"
+        >
+          {isPending ? (
+            <span className="text-xs">…</span>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
