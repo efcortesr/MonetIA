@@ -1,7 +1,9 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -79,3 +81,71 @@ class ProjectManagementTests(APITestCase):
 
     role_delete = self.client.delete(reverse("project-roles-detail", args=[role_id]))
     self.assertEqual(role_delete.status_code, status.HTTP_204_NO_CONTENT)
+
+  def test_recommendations_are_generated_from_spending_patterns(self):
+    today = timezone.now().date()
+    recent_date = (today - timedelta(days=5)).isoformat()
+    previous_date = (today - timedelta(days=35)).isoformat()
+
+    project = Project.objects.create(
+      owner=self.user,
+      name="Proyecto Analitica",
+      description="",
+      budget=Decimal("10000.00"),
+      start_date="2026-01-01",
+      end_date="2026-12-31",
+      status="activo",
+    )
+    marketing = Category.objects.create(name="Marketing", color="#111")
+
+    self.client.post(
+      reverse("project-roles-list"),
+      {"project": project.id, "name": "Dev", "salary": "7800.00"},
+      format="json",
+    )
+
+    self.client.post(
+      reverse("expenses-list"),
+      {
+        "project": project.id,
+        "category": marketing.id,
+        "user": self.user.id,
+        "amount": "1200.00",
+        "description": "Campana reciente",
+        "date": recent_date,
+        "receipt_url": "",
+        "status": "registrado",
+      },
+      format="json",
+    )
+    self.client.post(
+      reverse("expenses-list"),
+      {
+        "project": project.id,
+        "category": marketing.id,
+        "user": self.user.id,
+        "amount": "600.00",
+        "description": "Campana anterior",
+        "date": previous_date,
+        "receipt_url": "",
+        "status": "registrado",
+      },
+      format="json",
+    )
+
+    response = self.client.get(reverse("recommendations-list"), format="json")
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+    self.assertGreaterEqual(len(response.data["results"]), 2)
+
+    patterns = [item["pattern"] for item in response.data["results"]]
+    self.assertIn("Alto consumo de presupuesto", patterns)
+    self.assertIn("Alta concentración en categoría", patterns)
+    self.assertIn("Gasto concentrado en pocos ítems", patterns)
+
+    filtered = self.client.get(
+      f"{reverse('recommendations-list')}?project={project.id}",
+      format="json",
+    )
+    self.assertEqual(filtered.status_code, status.HTTP_200_OK)
+    self.assertEqual(len(filtered.data["results"]), len(response.data["results"]))
+    self.assertTrue(all(item["project_id"] == project.id for item in filtered.data["results"]))

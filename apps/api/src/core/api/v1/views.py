@@ -1,7 +1,8 @@
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
 from core.models import Category, Expense, Project, ProjectRole
+from core.recommendations import build_recommendations_for_project
 from .serializers import CategorySerializer, ExpenseSerializer, ProjectRoleSerializer, ProjectSerializer
 
 
@@ -32,4 +33,29 @@ class AlertsViewSet(viewsets.ViewSet):
 
 class RecommendationsViewSet(viewsets.ViewSet):
   def list(self, request):
-    return Response({"results": []})
+    today = timezone.now().date()
+    categories = {category.id: category.name for category in Category.objects.all()}
+    project_param = request.query_params.get("project")
+
+    if project_param is not None:
+      try:
+        project_id = int(project_param)
+      except (TypeError, ValueError):
+        project_id = None
+      if project_id is None:
+        return Response({"results": []})
+      projects = (
+        Project.objects.prefetch_related("expenses", "roles").filter(pk=project_id)
+      )
+    else:
+      projects = Project.objects.prefetch_related("expenses", "roles").all()
+
+    recommendations = []
+    for project in projects:
+      recommendations.extend(build_recommendations_for_project(project, categories, today))
+
+    ordered = sorted(
+      recommendations,
+      key=lambda item: {"Alta": 0, "Media": 1, "Baja": 2}.get(item["priority"], 3),
+    )
+    return Response({"results": ordered})
