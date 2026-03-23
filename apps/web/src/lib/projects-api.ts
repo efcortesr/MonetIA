@@ -41,6 +41,14 @@ export type ApiCategory = {
   icon: string;
 };
 
+export type ApiRecommendation = {
+  id: string;
+  title: string;
+  body: string;
+  priority: "Alta" | "Media" | "Baja";
+  project?: string;
+};
+
 export type CreateProjectRequest = Omit<ApiProject, 'id' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
 export type CreateExpenseRequest = Omit<ApiExpense, 'id' | 'user' | 'receipt_url' | 'status'>;
 export type CreateProjectRoleRequest = Omit<ApiProjectRole, 'id'>;
@@ -118,3 +126,13 @@ export async function getSpendingByCategory() {
     return [];
   }
 }
+
+export async function getGlobalRecommendations() {
+  const data = await apiFetch<{ results: ApiRecommendation[] }>("/recommendations/");
+  return data.results || [];
+}
+
+export async function getProjectRecommendations(projectId: string | number) {
+  const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/recommendations/`);
+  return data.results || [];
+}
