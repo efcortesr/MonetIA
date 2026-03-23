@@ -15,6 +15,7 @@ import {
   listProjectRoles,
   listCategories,
 } from "@/lib/projects-api";
+import ProjectRecommendations from "./ProjectRecommendations";
 
 function formatUSD(value: number) {
   return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
@@ -163,6 +164,9 @@ export default async function ProjectDetailsPage({
           tone={consumedPct > timelinePct + 15 ? "danger" : "neutral"}
         />
       </div>
+
+      {/* ── Recommendations Preview ── */}
+      <ProjectRecommendations projectId={id} />
 
       {/* ── Progress bars ── */}
       <div className="grid gap-4 lg:grid-cols-3">
