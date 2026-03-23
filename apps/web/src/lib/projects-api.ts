@@ -128,11 +128,17 @@ export async function getSpendingByCategory() {
 }
 
 export async function getGlobalRecommendations() {
-  const data = await apiFetch<{ results: ApiRecommendation[] }>("/recommendations/");
+  const data = await apiFetch<{ results: ApiRecommendation[] }>("/recommendations/", {
+    next: { revalidate: 0 },
+    cache: "no-store",
+  });
   return data.results || [];
 }
 
 export async function getProjectRecommendations(projectId: string | number) {
-  const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/recommendations/`);
+  const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/recommendations/`, {
+    next: { revalidate: 0 },
+    cache: "no-store",
+  });
   return data.results || [];
 }
