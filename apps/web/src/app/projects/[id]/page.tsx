@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Progress } from "@/components/ui/Progress";
 import {
@@ -96,7 +95,7 @@ export default async function ProjectDetailsPage({
   const isOverBudget = remaining < 0;
 
   // Rough timeline % based on start/end dates
-  const now = Date.now();
+  const now = new Date().getTime();
   const start = new Date(project.start_date).getTime();
   const end = new Date(project.end_date).getTime();
   const timelinePct =

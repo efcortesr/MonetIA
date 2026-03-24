@@ -7,24 +7,18 @@ import { createProject, type CreateProjectRequest } from "@/lib/projects-api";
 export default async function NewProjectPage() {
   async function handleSubmit(formData: FormData) {
     "use server";
-    
-    try {
-      const project = {
-        owner: 1, // TODO: Get actual user ID from auth
-        name: formData.get("name") as string,
-        description: formData.get("description") as string || "",
-        budget: formData.get("budget") as string,
-        start_date: formData.get("start_date") as string,
-        end_date: formData.get("end_date") as string,
-        status: "planning",
-      };
-      
-      const result = await createProject(project);
-      redirect(`/projects/${result.id}`);
-    } catch (error) {
-      // TODO: Handle error properly
-      console.error("Error creating project:", error);
-    }
+
+    const project: CreateProjectRequest = {
+      name: formData.get("name") as string,
+      description: (formData.get("description") as string) || "",
+      budget: formData.get("budget") as string,
+      start_date: formData.get("start_date") as string,
+      end_date: formData.get("end_date") as string,
+      status: "planning",
+    };
+
+    const result = await createProject(project);
+    redirect(`/projects/${result.id}`);
   }
 
   return (

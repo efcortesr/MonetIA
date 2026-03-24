@@ -10,12 +10,12 @@ function PriorityPill({ p }: { p: "Alta" | "Media" | "Baja" }) {
 
 export default async function ProjectRecommendations({ projectId }: { projectId: string | number }) {
   let recommendations: ApiRecommendation[] = [];
-  let errorMsg = null;
+  let errorMsg: string | null = null;
 
   try {
     recommendations = await getProjectRecommendations(projectId);
-  } catch (err: any) {
-    errorMsg = err.message || "Error de conexión al servidor";
+  } catch (err: unknown) {
+    errorMsg = err instanceof Error ? err.message : "Error de conexión al servidor";
   }
     
   if (errorMsg) {

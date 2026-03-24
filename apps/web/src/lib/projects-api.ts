@@ -49,7 +49,7 @@ export type ApiRecommendation = {
   project?: string;
 };
 
-export type CreateProjectRequest = Omit<ApiProject, 'id' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
+export type CreateProjectRequest = Omit<ApiProject, 'id' | 'owner' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
 export type CreateExpenseRequest = Omit<ApiExpense, 'id' | 'user' | 'receipt_url' | 'status'>;
 export type CreateProjectRoleRequest = Omit<ApiProjectRole, 'id'>;
 
@@ -141,4 +141,4 @@ export async function getProjectRecommendations(projectId: string | number) {
     cache: "no-store",
   });
   return data.results || [];
-}
+}

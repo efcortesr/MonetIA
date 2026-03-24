@@ -1,58 +1,102 @@
 import json
 import os
-import uuid
 import logging
-import google.generativeai as genai
+from google import genai
 from decimal import Decimal
-from django.db.models import Sum
 from core.models import Recommendation
 
 logger = logging.getLogger(__name__)
 
+
 class GeminiRecommendationService:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
-            # Use gemini-1.5-flash which is fast and supports JSON mode well
-            self.model = genai.GenerativeModel("gemini-1.5-flash")
+        # Priority: explicit model env > first from GEMINI_MODELS > sensible defaults.
+        default_models = ["gemini-2.5-flash",
+                          "gemini-2.0-flash", "gemini-1.5-flash"]
+        env_models = [m.strip() for m in os.environ.get(
+            "GEMINI_MODELS", "").split(",") if m.strip()]
+        preferred_model = os.environ.get("GEMINI_MODEL", "").strip()
+
+        if preferred_model:
+            self.model_candidates = [
+                preferred_model, *[m for m in env_models if m != preferred_model], *default_models]
         else:
-            self.model = None
+            self.model_candidates = [*env_models, *default_models]
+
+        # Deduplicate while preserving order.
+        self.model_candidates = list(dict.fromkeys(self.model_candidates))
+
+        if self.api_key:
+            self.client = genai.Client(api_key=self.api_key)
+        else:
+            self.client = None
+
+    def _generate_content_with_model_fallback(self, prompt):
+        last_error = None
+
+        for model_name in self.model_candidates:
+            try:
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={"response_mime_type": "application/json"},
+                )
+                return response
+            except Exception as exc:
+                last_error = exc
+                error_text = str(exc)
+                if "NOT_FOUND" in error_text or "not found" in error_text.lower():
+                    logger.warning(
+                        "Modelo Gemini no disponible: %s. Probando siguiente opción.",
+                        model_name,
+                    )
+                    continue
+                raise
+
+        if last_error:
+            raise last_error
+
+        raise RuntimeError("No hay modelos Gemini configurados para intentar.")
 
     def _calculate_metrics(self, project):
         budget = project.budget or Decimal("0.00")
         total_expenses = project.total_expenses
         total_roles_cost = project.total_roles_cost
         total_spent = project.total_spent
-        
-        consumed_pct = (total_spent / budget * 100) if budget > 0 else Decimal("0.00")
-        
+
+        consumed_pct = (total_spent / budget *
+                        100) if budget > 0 else Decimal("0.00")
+
         # Dominant category calculation
-        expenses = project.expenses.all()
+        expenses = list(project.expenses.all())
+        roles = list(project.roles.all())
         category_totals = {}
         for exp in expenses:
             cat_name = exp.category.name
-            category_totals[cat_name] = category_totals.get(cat_name, Decimal("0.00")) + exp.amount
-            
+            category_totals[cat_name] = category_totals.get(
+                cat_name, Decimal("0.00")) + exp.amount
+
         dominant_category = None
         if category_totals:
-            dominant_category = max(category_totals.items(), key=lambda x: x[1])
-            
+            dominant_category = max(
+                category_totals.items(), key=lambda x: x[1])
+
         return {
             "budget": budget,
             "total_expenses": total_expenses,
             "total_roles_cost": total_roles_cost,
             "total_spent": total_spent,
             "consumed_pct": consumed_pct,
-            "dominant_category": dominant_category, # (name, amount)
-            "expenses_count": expenses.count(),
-            "roles_count": project.roles.count()
+            "dominant_category": dominant_category,  # (name, amount)
+            "expenses_count": len(expenses),
+            "roles_count": len(roles)
         }
 
     def _get_fallback_recommendations(self, project, metrics):
         """Rule-based fallback if Gemini fails or is not configured."""
         results = []
-        
+
         # Rule 1: Budget overrun or close to overrun
         if metrics["consumed_pct"] >= 90:
             results.append({
@@ -66,7 +110,7 @@ class GeminiRecommendationService:
                 "body": f"Has consumido el {metrics['consumed_pct']:.1f}% del presupuesto. Planifica los próximos gastos cuidadosamente.",
                 "priority": "Media",
             })
-            
+
         # Rule 2: Dominant category
         if metrics["dominant_category"]:
             cat_name, cat_amount = metrics["dominant_category"]
@@ -76,7 +120,7 @@ class GeminiRecommendationService:
                     "body": f"La categoría '{cat_name}' representa un volumen altísimo de tu límite. Intenta negociar con proveedores o buscar alternativas.",
                     "priority": "Alta",
                 })
-                
+
         # Rule 3: Roles cost vs Expenses
         if metrics["total_roles_cost"] > (metrics["budget"] * Decimal("0.6")):
             results.append({
@@ -107,27 +151,27 @@ class GeminiRecommendationService:
                 "body": "Agrega más gastos y roles para recibir recomendaciones detalladas.",
                 "priority": "Baja",
             })
-            
+
         # Save to DB
         return self._save_and_format_recommendations(project, results)
 
     def _save_and_format_recommendations(self, project, results_list):
         """Helper to clear old recommendations, save new ones, and format output."""
         Recommendation.objects.filter(project=project).delete()
-        
+
         saved_recs = []
         for item in results_list:
             priority = item.get("priority", "Media")
             if priority not in ["Alta", "Media", "Baja"]:
                 priority = "Media"
-                
+
             rec_obj = Recommendation.objects.create(
                 project=project,
                 title=item.get("title", "Sin título"),
                 body=item.get("body", ""),
                 priority=priority
             )
-            
+
             saved_recs.append({
                 "id": str(rec_obj.id),
                 "title": rec_obj.title,
@@ -135,13 +179,13 @@ class GeminiRecommendationService:
                 "priority": rec_obj.priority,
                 "project": project.name
             })
-            
+
         return {"results": saved_recs}
 
     def get_recommendations_for_project(self, project):
         metrics = self._calculate_metrics(project)
-        
-        if not self.api_key or not self.model:
+
+        if not self.api_key or not self.client:
             logger.warning("GEMINI_API_KEY no detectada. Usando fallback.")
             return self._get_fallback_recommendations(project, metrics)
 
@@ -179,31 +223,26 @@ class GeminiRecommendationService:
         """
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                )
-            )
-            
-            text_response = response.text.strip()
-            
+            response = self._generate_content_with_model_fallback(prompt)
+
+            text_response = (response.text or "").strip()
+
             # Clean up potential markdown formatting from LLM
             if text_response.startswith("```json"):
                 text_response = text_response[7:-3]
             elif text_response.startswith("```"):
                 text_response = text_response[3:-3]
-                
+
             data = json.loads(text_response.strip())
-            
+
             # Save directly avoiding the raw formatting
             if "results" in data and isinstance(data["results"], list) and len(data["results"]) > 0:
                 return self._save_and_format_recommendations(project, data["results"])
             else:
-                logger.warning("Gemini devolvió un JSON vacío o inválido. Usando fallback.")
+                logger.warning(
+                    "Gemini devolvió un JSON vacío o inválido. Usando fallback.")
                 return self._get_fallback_recommendations(project, metrics)
-                
+
         except Exception as e:
             logger.error(f"Error al llamar a Gemini: {str(e)}")
             return self._get_fallback_recommendations(project, metrics)
-

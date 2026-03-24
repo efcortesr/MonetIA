@@ -13,12 +13,12 @@ function PriorityPill({ p }: { p: Priority }) {
 
 export default async function RecommendationsPage() {
   let items: ApiRecommendation[] = [];
-  let errorMsg = null;
+  let errorMsg: string | null = null;
 
   try {
     items = await getGlobalRecommendations();
-  } catch (err: any) {
-    errorMsg = err.message || "Error al conectar con el servidor.";
+  } catch (err: unknown) {
+    errorMsg = err instanceof Error ? err.message : "Error al conectar con el servidor.";
   }
 
 

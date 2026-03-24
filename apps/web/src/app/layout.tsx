@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ReactNode } from "react";
 import { ConditionalShell } from "@/components/ConditionalShell";
 import "./globals.css";
 
