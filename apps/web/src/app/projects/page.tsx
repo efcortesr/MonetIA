@@ -4,11 +4,11 @@ import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { listProjects } from "@/lib/projects-api";
 
-function formatUSD(value: number) {
-  const formatted = value.toLocaleString("en-US", {
+function formatCOP(value: number) {
+  const formatted = value.toLocaleString("es-CO", {
     maximumFractionDigits: 0,
   });
-  return `USD ${formatted}`;
+  return `COP ${formatted}`;
 }
 
 function ProgressLine({ value }: { value: number }) {
@@ -87,14 +87,14 @@ export default async function ProjectsPage() {
                     <div>
                       <div className="text-[11px] text-zinc-500">Presupuesto</div>
                       <div className="mt-1 text-xs font-medium text-zinc-700">
-                        {formatUSD(budget)}
+                        {formatCOP(budget)}
                       </div>
                     </div>
                     
                     <div>
                       <div className="text-[11px] text-zinc-500">Gastado</div>
                       <div className="mt-1 text-xs font-medium text-zinc-700">
-                        {formatUSD(spent)}
+                        {formatCOP(spent)}
                       </div>
                     </div>
                   </div>

@@ -2,11 +2,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { listProjects, getSpendingByCategory } from "@/lib/projects-api";
 
-function formatUSD(value: number) {
-  const formatted = value.toLocaleString("en-US", {
+function formatCOP(value: number) {
+  const formatted = value.toLocaleString("es-CO", {
     maximumFractionDigits: 0,
   });
-  return `USD ${formatted}`;
+  return `COP ${formatted}`;
 }
 
 function MetricIcon({ kind }: { kind: "budget" | "spend" | "ai" }) {
@@ -181,7 +181,7 @@ function BurnRateChart({ projects }: { projects: any[] }) {
               className="fill-[11px] fill-zinc-400 text-right"
               textAnchor="end"
             >
-              {formatUSD(min + range * (1 - p))}
+              {formatCOP(min + range * (1 - p))}
             </text>
           </g>
         ))}
@@ -295,7 +295,7 @@ function CategorySpendingChart({ categoryData }: { categoryData: any[] }) {
               </div>
             </div>
             <div className="w-16 text-xs font-semibold text-zinc-900 text-right">
-              {formatUSD(cat.amount)}
+              {formatCOP(cat.amount)}
             </div>
           </div>
         );
@@ -353,13 +353,13 @@ export default async function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-4">
         <Stat
           title="Presupuesto Total"
-          value={formatUSD(totalBudget)}
+          value={formatCOP(totalBudget)}
           deltaTone="muted"
           icon="budget"
         />
         <Stat
           title="Gastado hasta la fecha"
-          value={formatUSD(totalSpent)}
+          value={formatCOP(totalSpent)}
           delta={`▲ ${Math.round((totalSpent / totalBudget) * 100)}% del presupuesto`}
           deltaTone={totalSpent / totalBudget > 0.8 ? "danger" : "warning"}
           icon="spend"
@@ -373,7 +373,7 @@ export default async function DashboardPage() {
         />
         <Stat
           title="Costo Final Predicho"
-          value={formatUSD(projectedFinal)}
+          value={formatCOP(projectedFinal)}
           delta={`+${Math.round(averageOverrun)}% de sobre costo promedio`}
           deltaTone="danger"
           icon="ai"
@@ -444,7 +444,7 @@ export default async function DashboardPage() {
                       {project.name}
                     </div>
                     <div className="mt-1 text-xs text-zinc-500">
-                      {formatUSD(spent)} / {formatUSD(budget)}
+                      {formatCOP(spent)} / {formatCOP(budget)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -29,7 +29,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
     return (
       <button
         onClick={() => setShowForm(true)}
-        className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+        className="px-4 py-1.5 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all shadow-sm"
       >
         + Registrar gasto
       </button>
@@ -37,7 +37,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
   }
 
   return (
-    <Card className="p-0 mt-4">
+    <Card className="p-0 mt-4 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
       <CardHeader title="Registrar nuevo gasto" />
       <CardBody>
         <form action={handleSubmit} className="space-y-4">
@@ -57,7 +57,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Monto (USD)
+                Monto (COP)
               </label>
               <input
                 type="number"
@@ -66,7 +66,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
                 step="0.01"
                 min="0"
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="1000.00"
+                placeholder="100.000"
               />
             </div>
 
@@ -141,7 +141,7 @@ export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
     });
   };
 
-  const formattedAmount = Number(expense.amount).toLocaleString("en-US", {
+  const formattedAmount = Number(expense.amount).toLocaleString("es-CO", {
     maximumFractionDigits: 0,
   });
 
@@ -158,7 +158,7 @@ export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
         <div className="text-xs text-zinc-500 mt-0.5">{expense.date}</div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="font-semibold text-zinc-800">${formattedAmount}</span>
+        <span className="font-semibold text-zinc-800">COP {formattedAmount}</span>
         <button
           onClick={handleDelete}
           className="text-zinc-400 hover:text-rose-600 transition-colors"
@@ -206,7 +206,7 @@ export function RoleForm({ projectId }: RoleFormProps) {
     return (
       <button
         onClick={() => setShowForm(true)}
-        className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+        className="px-4 py-1.5 text-xs font-semibold text-blue-600 bg-white border border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all shadow-sm"
       >
         + Agregar rol
       </button>
@@ -214,60 +214,70 @@ export function RoleForm({ projectId }: RoleFormProps) {
   }
 
   return (
-    <Card className="p-0 mt-4">
-      <CardHeader title="Agregar nuevo rol" />
-      <CardBody>
-        <form action={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Nombre del rol
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="Ej: Desarrollador Senior"
-              />
-            </div>
+    <div className="w-full flex justify-start animate-in fade-in slide-in-from-top-2 duration-300">
+      <Card className="mt-4 w-full max-w-md mr-auto border-blue-100 shadow-lg">
+        <CardHeader title="Agregar nuevo rol" />
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Salario mensual (USD)
-              </label>
-              <input
-                type="number"
-                name="salary"
-                required
-                step="0.01"
-                min="0"
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="2500.00"
-              />
-            </div>
-          </div>
+        <CardBody>
+          <div className="w-full overflow-x-hidden">
+            <form action={handleSubmit} className="space-y-4 w-full">
+              {/* Inputs en vertical */}
+              <div className="flex flex-col gap-4 w-full">
+                {/* Nombre */}
+                <div className="min-w-0">
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">
+                    Nombre del rol
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="w-full min-w-0 px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Ej: Desarrollador Senior"
+                  />
+                </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isPending ? "Agregando…" : "Agregar rol"}
-            </button>
+                {/* Salario */}
+                <div className="min-w-0">
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">
+                    Salario mensual (COP)
+                  </label>
+                  <input
+                    type="number"
+                    name="salary"
+                    required
+                    step="0.01"
+                    min="0"
+                    className="w-full min-w-0 px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="2.500.000"
+                  />
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className="flex flex-wrap justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  disabled={isPending}
+                  className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPending ? "Agregando…" : "Agregar rol"}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+    </div>
   );
 }
 
@@ -288,7 +298,7 @@ export function RoleItem({ role, projectId }: RoleItemProps) {
     });
   };
 
-  const formattedSalary = Number(role.salary).toLocaleString("en-US", {
+  const formattedSalary = Number(role.salary).toLocaleString("es-CO", {
     maximumFractionDigits: 0,
   });
 
@@ -303,7 +313,7 @@ export function RoleItem({ role, projectId }: RoleItemProps) {
         <div className="text-xs text-zinc-500">Salario mensual</div>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-zinc-800">${formattedSalary}</span>
+        <span className="text-sm font-semibold text-zinc-800">COP {formattedSalary}</span>
         <button
           onClick={handleDelete}
           className="text-zinc-400 hover:text-rose-600 transition-colors"

@@ -17,8 +17,8 @@ import {
 } from "@/lib/projects-api";
 import ProjectRecommendations from "./ProjectRecommendations";
 
-function formatUSD(value: number) {
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+function formatCOP(value: number) {
+  return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
 function Kpi({
@@ -131,8 +131,8 @@ export default async function ProjectDetailsPage({
           <span className="text-rose-600 font-bold text-lg">!</span>
           <div className="text-sm text-rose-700">
             <span className="font-semibold">Presupuesto excedido</span> — el gasto
-            total ({formatUSD(totalSpent)}) supera el presupuesto en{" "}
-            <span className="font-semibold">{formatUSD(Math.abs(remaining))}</span>.
+            total ({formatCOP(totalSpent)}) supera el presupuesto en{" "}
+            <span className="font-semibold">{formatCOP(Math.abs(remaining))}</span>.
           </div>
         </div>
       )}
@@ -141,19 +141,19 @@ export default async function ProjectDetailsPage({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
           title="Presupuesto"
-          value={formatUSD(budget)}
+          value={formatCOP(budget)}
           sub={`${project.start_date} → ${project.end_date}`}
           tone="neutral"
         />
         <Kpi
           title="Total gastado"
-          value={formatUSD(totalSpent)}
-          sub={`Gastos ${formatUSD(totalExpenses)} + Roles ${formatUSD(totalRolesCost)}`}
+          value={formatCOP(totalSpent)}
+          sub={`Gastos ${formatCOP(totalExpenses)} + Roles ${formatCOP(totalRolesCost)}`}
           tone={consumedPct > 90 ? "danger" : consumedPct > 70 ? "warning" : "neutral"}
         />
         <Kpi
           title="Presupuesto restante"
-          value={formatUSD(remaining)}
+          value={formatCOP(remaining)}
           sub={isOverBudget ? "⚠ Sobrepasado" : `${Math.round(100 - consumedPct)}% disponible`}
           tone={isOverBudget ? "danger" : remaining < budget * 0.15 ? "warning" : "success"}
         />
@@ -208,7 +208,7 @@ export default async function ProjectDetailsPage({
                   Gastos directos
                 </div>
                 <div className="text-sm font-semibold text-zinc-900">
-                  {formatUSD(totalExpenses)}
+                  {formatCOP(totalExpenses)}
                 </div>
                 <div className="text-xs text-zinc-400">
                   {expenses.length} registros
@@ -217,7 +217,7 @@ export default async function ProjectDetailsPage({
               <div className="rounded-lg bg-zinc-50 p-3">
                 <div className="text-xs text-zinc-500 mb-1">Costo de roles</div>
                 <div className="text-sm font-semibold text-zinc-900">
-                  {formatUSD(totalRolesCost)}
+                  {formatCOP(totalRolesCost)}
                 </div>
                 <div className="text-xs text-zinc-400">
                   {roles.length} roles
@@ -236,7 +236,7 @@ export default async function ProjectDetailsPage({
         <Card className="p-0">
           <CardHeader
             title="Roles del proyecto"
-            subtitle={`Costo total: ${formatUSD(totalRolesCost)}`}
+            subtitle={`Costo total: ${formatCOP(totalRolesCost)}`}
             right={<RoleForm projectId={id} />}
           />
           <CardBody className="space-y-3">
@@ -257,7 +257,7 @@ export default async function ProjectDetailsPage({
       <Card className="p-0">
         <CardHeader
           title="Gastos registrados"
-          subtitle={`Total: ${formatUSD(totalExpenses)} — ${expenses.length} registros`}
+          subtitle={`Total: ${formatCOP(totalExpenses)} — ${expenses.length} registros`}
           right={<ExpenseForm projectId={id} categories={categories} />}
         />
         <CardBody className="space-y-3">
