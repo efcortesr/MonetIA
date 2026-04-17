@@ -1,5 +1,16 @@
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { listProjects, getSpendingByCategory } from "@/lib/projects-api";
+import {
+  getSpendingByCategory,
+  listProjects,
+  type ApiProject,
+} from "@/lib/projects-api";
+
+type CategorySpending = {
+  id: number;
+  name: string;
+  color: string;
+  amount: number;
+};
 
 function formatCOP(value: number) {
   const formatted = value.toLocaleString("es-CO", {
@@ -116,7 +127,7 @@ function Stat({
   );
 }
 
-function BurnRateChart({ projects }: Readonly<{ projects: Array<{ total_spent: string | number }> }>) {
+function BurnRateChart({ projects }: Readonly<{ projects: ApiProject[] }>) {
   const w = 860;
   const h = 240;
   const padX = 54;
@@ -130,11 +141,11 @@ function BurnRateChart({ projects }: Readonly<{ projects: Array<{ total_spent: s
   // Calculate real monthly spending from project expenses
   // For now, we'll estimate based on total spent distributed across months
   const totalSpent = projects.reduce((sum, p) => sum + Number(p.total_spent), 0);
-  const monthlySpending = displayMonths.map((_, i) => {
-    // Distribute total spent across months with a stable pattern
+  const monthlySpending = displayMonths.map((_, idx) => {
+    // Distribute total spent across months with some variation
     const baseAmount = totalSpent / displayMonths.length;
-    const variationPattern = [0.1, -0.05, 0.15, -0.1, 0.05, 0];
-    const variation = variationPattern[i % variationPattern.length];
+    // Deterministic +/-20% variation to keep render pure and avoid hydration issues.
+    const variation = Math.sin((idx + 1) * 12.9898 + totalSpent * 0.0001) * 0.2;
     return Math.max(0, baseAmount * (1 + variation));
   });
   
@@ -262,7 +273,7 @@ function BurnRateChart({ projects }: Readonly<{ projects: Array<{ total_spent: s
   );
 }
 
-function CategorySpendingChart({ categoryData }: Readonly<{ categoryData: Array<{ id: string | number, name: string, amount: number, color?: string }> }>) {
+function CategorySpendingChart({ categoryData }: Readonly<{ categoryData: CategorySpending[] }>) {
   if (categoryData.length === 0) {
     return (
       <div className="text-sm text-zinc-500 text-center py-4">
@@ -313,6 +324,7 @@ export default async function DashboardPage() {
   // Calculate real metrics from project data
   const totalBudget = projects.reduce((sum, p) => sum + Number(p.budget), 0);
   const totalSpent = projects.reduce((sum, p) => sum + Number(p.total_spent), 0);
+  const consumedPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
   const averageOverrun = projects.length > 0 
     ? projects.reduce((sum, p) => {
         const overrun = (Number(p.total_spent) / Number(p.budget) - 1) * 100;
@@ -360,8 +372,8 @@ export default async function DashboardPage() {
         <Stat
           title="Gastado hasta la fecha"
           value={formatCOP(totalSpent)}
-          delta={`▲ ${Math.round((totalSpent / totalBudget) * 100)}% del presupuesto`}
-          deltaTone={totalSpent / totalBudget > 0.8 ? "danger" : "warning"}
+          delta={`▲ ${Math.round(consumedPct)}% del presupuesto`}
+          deltaTone={consumedPct > 80 ? "danger" : "warning"}
           icon="spend"
         />
         <Stat

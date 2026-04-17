@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { 
@@ -9,7 +9,7 @@ import {
   type ApiRecommendation 
 } from "@/lib/projects-api";
 
-function PriorityPill({ p }: { p: "Alta" | "Media" | "Baja" }) {
+function PriorityPill({ p }: Readonly<{ p: "Alta" | "Media" | "Baja" }>) {
   if (p === "Alta") return <Badge tone="danger">Alta</Badge>;
   if (p === "Media") return <Badge tone="warning">Media</Badge>;
   return <Badge tone="muted">Baja</Badge>;
@@ -28,7 +28,7 @@ export default function ProjectRecommendations({ projectId }: Readonly<{ project
       const data = await getProjectRecommendations(projectId);
       setRecommendations(data);
       setErrorMsg(null);
-    } catch (err) {
+    } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Error al cargar las recomendaciones");
     } finally {
       setIsLoading(false);
@@ -46,7 +46,7 @@ export default function ProjectRecommendations({ projectId }: Readonly<{ project
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err) {
+    } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "Error al generar recomendaciones");
     } finally {
       setIsGenerating(false);

@@ -92,11 +92,11 @@ export default async function ProjectDetailsPage({
 
   // Time calculation 
   const timelinePct = (() => {
-    const start = new Date(project.start_date).getTime();
-    const end = new Date(project.end_date).getTime();
-    if (end <= start) return 0;
+    const startObj = new Date(project.start_date).getTime();
+    const endObj = new Date(project.end_date).getTime();
+    if (endObj <= startObj) return 0;
     const nowTs = new Date().getTime();
-    return Math.min(100, Math.max(0, ((nowTs - start) / (end - start)) * 100));
+    return Math.min(100, Math.max(0, ((nowTs - startObj) / (endObj - startObj)) * 100));
   })();
 
   return (

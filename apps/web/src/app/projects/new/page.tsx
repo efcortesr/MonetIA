@@ -35,7 +35,6 @@ export default function NewProjectPage() {
     
     try {
       const project = {
-        owner: 1, // Fallback to user 1 for development
         name: formData.get("name") as string,
         description: formData.get("description") as string || "",
         budget: budgetRaw.toString(),
