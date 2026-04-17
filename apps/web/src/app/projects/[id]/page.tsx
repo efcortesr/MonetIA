@@ -1,17 +1,12 @@
 import Link from "next/link";
 
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import { Progress } from "@/components/ui/Progress";
 import {
-  ExpenseForm,
-  ExpenseItem,
   RoleForm,
   RoleItem,
 } from "@/components/forms/project-forms";
 import {
   getProject,
-  listProjectExpenses,
   listProjectRoles,
   listCategories,
 } from "@/lib/projects-api";
@@ -62,9 +57,8 @@ export default async function ProjectDetailsPage({
 }) {
   const { id } = await params;
 
-  const [project, expenses, roles, categories] = await Promise.all([
+  const [project, roles, categories] = await Promise.all([
     getProject(id).catch(() => null),
-    listProjectExpenses(id).catch(() => []),
     listProjectRoles(id).catch(() => []),
     listCategories().catch(() => []),
   ]);
@@ -96,14 +90,14 @@ export default async function ProjectDetailsPage({
   const consumedPct = budget > 0 ? (totalSpent / budget) * 100 : 0;
   const isOverBudget = remaining < 0;
 
-  // Rough timeline % based on start/end dates
-  const now = Date.now();
-  const start = new Date(project.start_date).getTime();
-  const end = new Date(project.end_date).getTime();
-  const timelinePct =
-    end > start
-      ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100))
-      : 0;
+  // Time calculation 
+  const timelinePct = (() => {
+    const start = new Date(project.start_date).getTime();
+    const end = new Date(project.end_date).getTime();
+    if (end <= start) return 0;
+    const nowTs = new Date().getTime();
+    return Math.min(100, Math.max(0, ((nowTs - start) / (end - start)) * 100));
+  })();
 
   return (
     <div className="space-y-5">

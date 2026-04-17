@@ -20,10 +20,10 @@ const COLORS = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#16a34a", "#ca8a04"
 export default function FinancialDashboard({ 
   projectId, 
   categories 
-}: { 
+}: Readonly<{ 
   projectId: string; 
   categories: ApiCategory[] 
-}) {
+}>) {
   const [data, setData] = useState<ApiFinancialDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -71,8 +71,9 @@ export default function FinancialDashboard({
         <CardBody className="py-4">
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Desde</label>
+              <label htmlFor="filter-start" className="text-[10px] font-bold text-zinc-500 uppercase">Desde</label>
               <input 
+                id="filter-start"
                 type="date" 
                 value={filters.start_date}
                 onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
@@ -80,8 +81,9 @@ export default function FinancialDashboard({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Hasta</label>
+              <label htmlFor="filter-end" className="text-[10px] font-bold text-zinc-500 uppercase">Hasta</label>
               <input 
+                id="filter-end"
                 type="date" 
                 value={filters.end_date}
                 onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
@@ -89,8 +91,9 @@ export default function FinancialDashboard({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Categoría</label>
+              <label htmlFor="filter-category" className="text-[10px] font-bold text-zinc-500 uppercase">Categoría</label>
               <select 
+                id="filter-category"
                 value={filters.category}
                 onChange={(e) => setFilters(f => ({ ...f, category: e.target.value }))}
                 className="block w-full px-3 py-1.5 text-xs border border-zinc-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white min-w-[150px]"
@@ -175,8 +178,8 @@ export default function FinancialDashboard({
                       data={charts.by_category}
                       cx="50%" cy="50%" outerRadius={70} dataKey="value" stroke="none"
                     >
-                      {charts.by_category.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                      {charts.by_category.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color || COLORS[charts.by_category.indexOf(entry) % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(val: number) => formatCurrency(val)} />
@@ -198,8 +201,8 @@ export default function FinancialDashboard({
                 <YAxis dataKey="name" type="category" width={80} style={{ fontSize: '10px' }} />
                 <Tooltip formatter={(val: number) => formatCurrency(val)} cursor={{fill: 'transparent'}} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {charts.by_category.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  {charts.by_category.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color || COLORS[charts.by_category.indexOf(entry) % COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -307,8 +310,8 @@ export default function FinancialDashboard({
   );
 }
 
-function StatCard({ label, value, sub, tone, isBadge = false }: any) {
-  const toneMap: any = {
+function StatCard({ label, value, sub, tone, isBadge = false }: Readonly<StatCardProps>) {
+  const toneMap: Record<string, string> = {
     neutral: "text-zinc-500",
     info: "text-blue-600",
     danger: "text-rose-600",

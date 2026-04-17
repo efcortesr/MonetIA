@@ -15,25 +15,25 @@ function PriorityPill({ p }: { p: "Alta" | "Media" | "Baja" }) {
   return <Badge tone="muted">Baja</Badge>;
 }
 
-export default function ProjectRecommendations({ projectId }: { projectId: string | number }) {
+export default function ProjectRecommendations({ projectId }: Readonly<{ projectId: string | number }>) {
   const [recommendations, setRecommendations] = useState<ApiRecommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await getProjectRecommendations(projectId);
       setRecommendations(data);
       setErrorMsg(null);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al cargar las recomendaciones");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Error al cargar las recomendaciones");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
 
   const handleGenerate = async () => {
     try {
@@ -46,8 +46,8 @@ export default function ProjectRecommendations({ projectId }: { projectId: strin
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMsg(null), 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al generar recomendaciones");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Error al generar recomendaciones");
     } finally {
       setIsGenerating(false);
     }
@@ -55,7 +55,7 @@ export default function ProjectRecommendations({ projectId }: { projectId: strin
 
   useEffect(() => {
     fetchRecommendations();
-  }, [projectId]);
+  }, [fetchRecommendations]);
 
   if (isLoading) {
     return (
@@ -87,7 +87,7 @@ export default function ProjectRecommendations({ projectId }: { projectId: strin
           >
             {isGenerating ? (
               <>
-                <span className="animate-pulse">●</span>
+                <span className="animate-pulse">●</span>{" "}
                 Generando...
               </>
             ) : (
@@ -109,15 +109,7 @@ export default function ProjectRecommendations({ projectId }: { projectId: strin
           </div>
         )}
 
-        {!hasRecommendations ? (
-          <div className="py-12 flex flex-col items-center justify-center text-center">
-            <div className="text-4xl mb-4 opacity-10">✧</div>
-            <div className="text-sm font-bold text-zinc-900">Aún no hay recomendaciones</div>
-            <p className="text-xs text-zinc-500 mt-2 max-w-xs">
-              Las recomendaciones no se generan solas. Presiona el botón de arriba para analizar tu proyecto.
-            </p>
-          </div>
-        ) : (
+        {hasRecommendations ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {recommendations.map((r) => {
               const isHigh = r.priority === "Alta";
@@ -142,6 +134,14 @@ export default function ProjectRecommendations({ projectId }: { projectId: strin
                 </div>
               );
             })}
+          </div>
+        ) : (
+          <div className="py-12 flex flex-col items-center justify-center text-center">
+            <div className="text-4xl mb-4 opacity-10">✧</div>
+            <div className="text-sm font-bold text-zinc-900">Aún no hay recomendaciones</div>
+            <p className="text-xs text-zinc-500 mt-2 max-w-xs">
+              Las recomendaciones no se generan solas. Presiona el botón de arriba para analizar tu proyecto.
+            </p>
           </div>
         )}
       </CardBody>

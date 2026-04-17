@@ -22,7 +22,7 @@ export function ExpenseForm({
   initialData, 
   onSuccess, 
   onCancel 
-}: ExpenseFormProps) {
+}: Readonly<ExpenseFormProps>) {
   const [showForm, setShowForm] = useState(!!initialData);
   const [isPending, startTransition] = useTransition();
 
@@ -37,7 +37,10 @@ export function ExpenseForm({
         await createExpenseAction(formData);
       }
       
-      if (!isEdit) {
+      if (isEdit) {
+        // En modo edición mantenemos el formulario abierto si es necesario, 
+        // pero aquí la lógica original cerraba el de creación.
+      } else {
         setShowForm(false);
       }
       onSuccess?.();
@@ -56,7 +59,7 @@ export function ExpenseForm({
   }
 
   return (
-    <Card className={`p-0 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 ${!isEdit ? 'mt-4' : ''}`}>
+    <Card className={`p-0 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 ${isEdit ? '' : 'mt-4'}`}>
       <CardHeader title={isEdit ? "Editar gasto" : "Registrar nuevo gasto"} />
       <CardBody>
         <form action={handleSubmit} className="space-y-4">
@@ -128,8 +131,12 @@ export function ExpenseForm({
             <button
               type="button"
               onClick={() => {
-                if (!isEdit) setShowForm(false);
-                onCancel?.();
+                if (isEdit) {
+                   onCancel?.();
+                } else {
+                   setShowForm(false);
+                   onCancel?.();
+                }
               }}
               disabled={isPending}
               className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
@@ -141,7 +148,9 @@ export function ExpenseForm({
               disabled={isPending}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? (isEdit ? "Guardando..." : "Registrando…") : (isEdit ? "Guardar cambios" : "Registrar gasto")}
+              {isPending 
+                ? (isEdit ? "Guardando..." : "Registrando…") 
+                : (isEdit ? "Guardar cambios" : "Registrar gasto")}
             </button>
           </div>
         </form>

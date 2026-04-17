@@ -17,8 +17,8 @@ export default async function RecommendationsPage() {
 
   try {
     items = await getGlobalRecommendations();
-  } catch (err: any) {
-    errorMsg = err.message || "Error al conectar con el servidor.";
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : "Error al conectar con el servidor.";
   }
 
 

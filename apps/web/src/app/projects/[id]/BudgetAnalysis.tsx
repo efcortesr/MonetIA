@@ -9,7 +9,7 @@ import { getProjectBudgetAnalysis, type ApiBudgetAnalysis } from "@/lib/projects
 const COLORS = ["#2563eb", "#e2e8f0"]; // Blue for Spent, Slate for Remaining
 const OVER_COLORS = ["#2563eb", "#f43f5e"]; // Blue for Budget, Rose for Exceeded
 
-export default function BudgetAnalysis({ projectId }: { projectId: string | number }) {
+export default function BudgetAnalysis({ projectId }: Readonly<{ projectId: string | number }>) {
   const [data, setData] = useState<ApiBudgetAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -85,8 +85,8 @@ export default function BudgetAnalysis({ projectId }: { projectId: string | numb
                 dataKey="value"
                 stroke="none"
               >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={colorsToUse[index % colorsToUse.length]} />
+                {chartData.map((entry) => (
+                  <Cell key={entry.name} fill={colorsToUse[chartData.indexOf(entry) % colorsToUse.length]} />
                 ))}
               </Pie>
               <Tooltip 

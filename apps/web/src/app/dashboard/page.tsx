@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { listProjects, getSpendingByCategory } from "@/lib/projects-api";
 
@@ -83,13 +82,13 @@ function Stat({
   delta,
   deltaTone,
   icon,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   delta?: string;
   deltaTone: "success" | "warning" | "danger" | "muted";
   icon: "budget" | "spend" | "ai";
-}) {
+}>) {
   const deltaClass =
     deltaTone === "success"
       ? "text-emerald-600"
@@ -117,7 +116,7 @@ function Stat({
   );
 }
 
-function BurnRateChart({ projects }: { projects: any[] }) {
+function BurnRateChart({ projects }: Readonly<{ projects: Array<{ total_spent: string | number }> }>) {
   const w = 860;
   const h = 240;
   const padX = 54;
@@ -132,9 +131,10 @@ function BurnRateChart({ projects }: { projects: any[] }) {
   // For now, we'll estimate based on total spent distributed across months
   const totalSpent = projects.reduce((sum, p) => sum + Number(p.total_spent), 0);
   const monthlySpending = displayMonths.map((_, i) => {
-    // Distribute total spent across months with some variation
+    // Distribute total spent across months with a stable pattern
     const baseAmount = totalSpent / displayMonths.length;
-    const variation = Math.random() * 0.4 - 0.2; // ±20% variation
+    const variationPattern = [0.1, -0.05, 0.15, -0.1, 0.05, 0];
+    const variation = variationPattern[i % variationPattern.length];
     return Math.max(0, baseAmount * (1 + variation));
   });
   
@@ -262,7 +262,7 @@ function BurnRateChart({ projects }: { projects: any[] }) {
   );
 }
 
-function CategorySpendingChart({ categoryData }: { categoryData: any[] }) {
+function CategorySpendingChart({ categoryData }: Readonly<{ categoryData: Array<{ id: string | number, name: string, amount: number, color?: string }> }>) {
   if (categoryData.length === 0) {
     return (
       <div className="text-sm text-zinc-500 text-center py-4">

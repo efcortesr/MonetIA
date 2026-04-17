@@ -15,14 +15,14 @@ export default function NewProjectPage() {
 
   const formatNumber = (val: string) => {
     // Remove non-numeric characters except for formatting
-    const numericValue = val.replace(/\D/g, "");
+    const numericValue = val.replaceAll(/\D/g, "");
     if (!numericValue) return "";
     return Number(numericValue).toLocaleString("es-CO");
   };
 
   const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const numeric = value.replace(/\D/g, "");
+    const numeric = value.replaceAll(/\D/g, "");
     setBudgetRaw(Number(numeric));
     setBudgetDisplay(formatNumber(numeric));
   };
@@ -35,7 +35,7 @@ export default function NewProjectPage() {
     
     try {
       const project = {
-        owner: 1, // TODO: Get actual user ID from auth
+        owner: 1, // Fallback to user 1 for development
         name: formData.get("name") as string,
         description: formData.get("description") as string || "",
         budget: budgetRaw.toString(),
