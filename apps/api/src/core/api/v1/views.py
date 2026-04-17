@@ -14,17 +14,124 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 
   @action(detail=True, methods=["get"])
   def recommendations(self, request, pk=None):
-    try:
-      if request.user.is_authenticated:
-        project = self.get_queryset().get(pk=pk, owner=request.user)
-      else:
-        project = self.get_queryset().get(pk=pk)
-    except Project.DoesNotExist:
-      raise NotFound("Proyecto no encontrado.")
-      
+    project = self.get_object()
     service = GeminiRecommendationService()
-    recommendations_data = service.get_recommendations_for_project(project)
+    recommendations_data = service.get_existing_recommendations(project)
     return Response(recommendations_data)
+
+  @action(detail=True, methods=["post"], url_path="generate-recommendations")
+  def generate_recommendations(self, request, pk=None):
+    project = self.get_object()
+    service = GeminiRecommendationService()
+    recommendations_data = service.generate_recommendations(project)
+    return Response(recommendations_data)
+
+  @action(detail=True, methods=["get"], url_path="budget-analysis")
+  def budget_analysis(self, request, pk=None):
+    project = self.get_object()
+    budget = project.budget
+    spent = project.total_spent
+    remaining = max(0, budget - spent)
+    over_budget = max(0, spent - budget)
+    
+    consumed_pct = (spent / budget * 100) if budget > 0 else 0
+    
+    if consumed_pct < 70:
+        deviation = "Leve"
+    elif consumed_pct <= 90:
+        deviation = "Moderada"
+    else:
+        deviation = "Crítica"
+        
+    return Response({
+        "budget": budget,
+        "spent": spent,
+        "remaining": remaining,
+        "over_budget": over_budget,
+        "deviation_level": deviation,
+        "consumed_pct": float(consumed_pct),
+        "execution_percentage": float(consumed_pct),
+        "budget_deviation": spent - budget
+    })
+
+  @action(detail=True, methods=["get"], url_path="financial-dashboard")
+  def financial_dashboard(self, request, pk=None):
+    from django.db.models import Sum
+    project = self.get_object()
+    
+    # Global Summary (Total Project)
+    total_spent = project.total_spent
+    total_budget = project.budget
+    total_remaining = max(0, total_budget - total_spent)
+    total_over_budget = max(0, total_spent - total_budget)
+    total_consumed_pct = (total_spent / total_budget * 100) if total_budget > 0 else 0
+    total_deviation = total_spent - total_budget
+    
+    def get_deviation_level(pct):
+        if pct < 70: return "Leve"
+        if pct <= 90: return "Moderada"
+        return "Crítica"
+
+    # Filtering
+    expenses = project.expenses.all().select_related("category").order_by("-date")
+    start_date = request.query_params.get("start_date")
+    end_date = request.query_params.get("end_date")
+    category_id = request.query_params.get("category")
+    
+    if start_date:
+        expenses = expenses.filter(date__gte=start_date)
+    if end_date:
+        expenses = expenses.filter(date__lte=end_date)
+    if category_id:
+        expenses = expenses.filter(category_id=category_id)
+        
+    # Filtered Stats
+    filtered_spent = expenses.aggregate(total=Sum("amount"))["total"] or 0
+    
+    # Chart Data
+    by_category = (
+        expenses.values("category__id", "category__name", "category__color")
+        .annotate(total=Sum("amount"))
+        .order_by("-total")
+    )
+    
+    by_date = (
+        expenses.values("date")
+        .annotate(total=Sum("amount"))
+        .order_by("date")
+    )
+    
+    return Response({
+        "summary": {
+            "budget": total_budget,
+            "total_spent": total_spent,
+            "total_remaining": total_remaining,
+            "total_over_budget": total_over_budget,
+            "total_execution_percentage": float(total_consumed_pct),
+            "total_budget_deviation": total_deviation,
+            "total_deviation_level": get_deviation_level(total_consumed_pct),
+            "filtered_spent": filtered_spent,
+        },
+        "charts": {
+            "by_category": [
+                {
+                    "id": item["category__id"], 
+                    "name": item["category__name"], 
+                    "color": item["category__color"], 
+                    "value": float(item["total"])
+                }
+                for item in by_category
+            ],
+            "by_date": [
+                {
+                    "date": str(item["date"]), 
+                    "value": float(item["total"])
+                }
+                for item in by_date
+            ]
+        },
+        "expenses": ExpenseSerializer(expenses, many=True).data
+    })
 
 
 class ProjectRolesViewSet(viewsets.ModelViewSet):
@@ -61,7 +168,7 @@ class RecommendationsViewSet(viewsets.ViewSet):
     all_results = []
     
     for project in projects:
-      data = service.get_recommendations_for_project(project)
+      data = service.get_existing_recommendations(project)
       if "results" in data:
         all_results.extend(data["results"])
         

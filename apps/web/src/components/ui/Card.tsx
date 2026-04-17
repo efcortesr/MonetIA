@@ -7,10 +7,15 @@ export function Card({
   children: ReactNode;
   className?: string;
 }) {
+  // Base classes that can be extended or partially overridden
+  const baseClasses = "rounded-2xl border shadow-sm";
+  
+  // Default appearance if not overridden
+  const defaultAppearance = !className.includes("bg-") ? "bg-white" : "";
+  const defaultBorder = !className.includes("border-") ? "border-zinc-200" : "";
+
   return (
-    <div
-      className={`rounded-2xl border border-zinc-200 bg-white shadow-sm ${className}`}
-    >
+    <div className={`${baseClasses} ${defaultBorder} ${defaultAppearance} ${className}`}>
       {children}
     </div>
   );

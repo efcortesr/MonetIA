@@ -16,6 +16,7 @@ import {
   listCategories,
 } from "@/lib/projects-api";
 import ProjectRecommendations from "./ProjectRecommendations";
+import FinancialDashboard from "./FinancialDashboard";
 
 function formatCOP(value: number) {
   return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
@@ -165,109 +166,29 @@ export default async function ProjectDetailsPage({
         />
       </div>
 
-      {/* ── Recommendations Preview ── */}
+      {/* ── Financial Dashboard (KPIs, Charts, Filters, Table) ── */}
+      <section id="financial-dashboard" className="space-y-6">
+        <FinancialDashboard projectId={id} categories={categories} />
+      </section>
+
+      {/* ── Recommendations IA ── */}
       <ProjectRecommendations projectId={id} />
 
-      {/* ── Progress bars ── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-0 lg:col-span-2">
-          <CardHeader title="Progreso del proyecto" />
-          <CardBody className="space-y-5">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-zinc-600">Tiempo transcurrido</span>
-                <span className="font-semibold text-zinc-900">
-                  {Math.round(timelinePct)}%
-                </span>
-              </div>
-              <Progress value={timelinePct} />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-zinc-600">Presupuesto consumido</span>
-                <span
-                  className={`font-semibold ${
-                    consumedPct > 100
-                      ? "text-rose-600"
-                      : consumedPct > 80
-                        ? "text-amber-600"
-                        : "text-zinc-900"
-                  }`}
-                >
-                  {Math.round(consumedPct)}%
-                </span>
-              </div>
-              <Progress value={consumedPct} />
-            </div>
-
-            {/* Breakdown */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
-              <div className="rounded-lg bg-zinc-50 p-3">
-                <div className="text-xs text-zinc-500 mb-1">
-                  Gastos directos
-                </div>
-                <div className="text-sm font-semibold text-zinc-900">
-                  {formatCOP(totalExpenses)}
-                </div>
-                <div className="text-xs text-zinc-400">
-                  {expenses.length} registros
-                </div>
-              </div>
-              <div className="rounded-lg bg-zinc-50 p-3">
-                <div className="text-xs text-zinc-500 mb-1">Costo de roles</div>
-                <div className="text-sm font-semibold text-zinc-900">
-                  {formatCOP(totalRolesCost)}
-                </div>
-                <div className="text-xs text-zinc-400">
-                  {roles.length} roles
-                </div>
-              </div>
-            </div>
-
-            <p className="text-xs text-zinc-400">
-              Los totales son calculados automáticamente por el servidor cada
-              vez que se agrega o elimina un gasto o rol.
-            </p>
-          </CardBody>
-        </Card>
-
-        {/* ── Roles panel ── */}
-        <Card className="p-0">
-          <CardHeader
-            title="Roles del proyecto"
-            subtitle={`Costo total: ${formatCOP(totalRolesCost)}`}
-            right={<RoleForm projectId={id} />}
-          />
-          <CardBody className="space-y-3">
-            {roles.length === 0 ? (
-              <div className="text-sm text-zinc-500">
-                Aún no hay roles. Agrega uno para incluirlo en el cálculo.
-              </div>
-            ) : (
-              roles.map((role) => (
-                <RoleItem key={role.id} role={role} projectId={id} />
-              ))
-            )}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* ── Expenses panel ── */}
+      {/* ── Personnel Costs / Roles (Kept separate for role management) ── */}
       <Card className="p-0">
         <CardHeader
-          title="Gastos registrados"
-          subtitle={`Total: ${formatCOP(totalExpenses)} — ${expenses.length} registros`}
-          right={<ExpenseForm projectId={id} categories={categories} />}
+          title="Personal y Roles"
+          subtitle={`Inversión total en talento: ${formatCOP(totalRolesCost)}`}
+          right={<RoleForm projectId={id} />}
         />
         <CardBody className="space-y-3">
-          {expenses.length === 0 ? (
+          {roles.length === 0 ? (
             <div className="text-sm text-zinc-500">
-              No hay gastos registrados. Agrega el primero con el botón de arriba.
+              Aún no hay roles. Agrega uno para incluirlo en el cálculo.
             </div>
           ) : (
-            expenses.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} projectId={id} />
+            roles.map((role) => (
+              <RoleItem key={role.id} role={role} projectId={id} />
             ))
           )}
         </CardBody>

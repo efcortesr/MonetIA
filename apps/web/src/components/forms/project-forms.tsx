@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import type { ApiCategory, ApiExpense, ApiProjectRole } from "@/lib/projects-api";
-import { createExpenseAction, deleteExpenseAction } from "@/app/actions/expense-actions";
+import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/actions/expense-actions";
 import { createRoleAction, deleteRoleAction } from "@/app/actions/role-actions";
 
 // ─── Expense Form ────────────────────────────────────────────────────────────
@@ -11,17 +11,36 @@ import { createRoleAction, deleteRoleAction } from "@/app/actions/role-actions";
 interface ExpenseFormProps {
   projectId: string;
   categories: ApiCategory[];
+  initialData?: ApiExpense;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
-  const [showForm, setShowForm] = useState(false);
+export function ExpenseForm({ 
+  projectId, 
+  categories, 
+  initialData, 
+  onSuccess, 
+  onCancel 
+}: ExpenseFormProps) {
+  const [showForm, setShowForm] = useState(!!initialData);
   const [isPending, startTransition] = useTransition();
+
+  const isEdit = !!initialData;
 
   const handleSubmit = async (formData: FormData) => {
     formData.append("projectId", projectId);
     startTransition(async () => {
-      await createExpenseAction(formData);
-      setShowForm(false);
+      if (isEdit) {
+        await updateExpenseAction(initialData.id, formData);
+      } else {
+        await createExpenseAction(formData);
+      }
+      
+      if (!isEdit) {
+        setShowForm(false);
+      }
+      onSuccess?.();
     });
   };
 
@@ -37,8 +56,8 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
   }
 
   return (
-    <Card className="p-0 mt-4 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">
-      <CardHeader title="Registrar nuevo gasto" />
+    <Card className={`p-0 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 ${!isEdit ? 'mt-4' : ''}`}>
+      <CardHeader title={isEdit ? "Editar gasto" : "Registrar nuevo gasto"} />
       <CardBody>
         <form action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
@@ -50,6 +69,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
                 type="text"
                 name="description"
                 required
+                defaultValue={initialData?.description}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="Ej: Licencia de software"
               />
@@ -65,6 +85,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
                 required
                 step="0.01"
                 min="0"
+                defaultValue={initialData ? Number(initialData.amount) : ""}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="100.000"
               />
@@ -77,6 +98,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
               <select
                 name="category"
                 required
+                defaultValue={initialData?.category}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">Seleccionar categoría</option>
@@ -96,6 +118,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
                 type="date"
                 name="date"
                 required
+                defaultValue={initialData?.date}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
@@ -104,7 +127,10 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => {
+                if (!isEdit) setShowForm(false);
+                onCancel?.();
+              }}
               disabled={isPending}
               className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
             >
@@ -115,7 +141,7 @@ export function ExpenseForm({ projectId, categories }: ExpenseFormProps) {
               disabled={isPending}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? "Registrando…" : "Registrar gasto"}
+              {isPending ? (isEdit ? "Guardando..." : "Registrando…") : (isEdit ? "Guardar cambios" : "Registrar gasto")}
             </button>
           </div>
         </form>
