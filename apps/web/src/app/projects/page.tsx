@@ -33,7 +33,7 @@ function mapStatusTone(status: string): BadgeTone {
 
 export default async function ProjectsPage() {
   const result = await listProjects()
-    .then((projects) => ({ projects, error: null as string | null }))
+    .then((projects: ApiProject[]) => ({ projects, error: null as string | null }))
     .catch((error: unknown) => ({
       projects: [],
       error: error instanceof Error ? error.message : "Error desconocido al cargar proyectos.",
@@ -57,7 +57,7 @@ export default async function ProjectsPage() {
         <Card className="p-5 text-sm text-zinc-600">{result.error}</Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {result.projects.map((project) => {
+          {result.projects.map((project: ApiProject) => {
             const budget = Number(project.budget);
             const spent = Number(project.total_spent);
             const pct = budget > 0 ? (spent / budget) * 100 : 0;
