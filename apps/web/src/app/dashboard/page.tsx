@@ -12,11 +12,11 @@ type CategorySpending = {
   amount: number;
 };
 
-function formatUSD(value: number) {
-  const formatted = value.toLocaleString("en-US", {
+function formatCOP(value: number) {
+  const formatted = value.toLocaleString("es-CO", {
     maximumFractionDigits: 0,
   });
-  return `USD ${formatted}`;
+  return `COP ${formatted}`;
 }
 
 function MetricIcon({ kind }: { kind: "budget" | "spend" | "ai" }) {
@@ -93,13 +93,13 @@ function Stat({
   delta,
   deltaTone,
   icon,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   delta?: string;
   deltaTone: "success" | "warning" | "danger" | "muted";
   icon: "budget" | "spend" | "ai";
-}) {
+}>) {
   const deltaClass =
     deltaTone === "success"
       ? "text-emerald-600"
@@ -127,7 +127,7 @@ function Stat({
   );
 }
 
-function BurnRateChart({ projects }: { projects: ApiProject[] }) {
+function BurnRateChart({ projects }: Readonly<{ projects: ApiProject[] }>) {
   const w = 860;
   const h = 240;
   const padX = 54;
@@ -144,7 +144,7 @@ function BurnRateChart({ projects }: { projects: ApiProject[] }) {
   const monthlySpending = displayMonths.map((_, idx) => {
     // Distribute total spent across months with some variation
     const baseAmount = totalSpent / displayMonths.length;
-    // Deterministic +/-20% variation to keep render pure.
+    // Deterministic +/-20% variation to keep render pure and avoid hydration issues.
     const variation = Math.sin((idx + 1) * 12.9898 + totalSpent * 0.0001) * 0.2;
     return Math.max(0, baseAmount * (1 + variation));
   });
@@ -192,7 +192,7 @@ function BurnRateChart({ projects }: { projects: ApiProject[] }) {
               className="fill-[11px] fill-zinc-400 text-right"
               textAnchor="end"
             >
-              {formatUSD(min + range * (1 - p))}
+              {formatCOP(min + range * (1 - p))}
             </text>
           </g>
         ))}
@@ -273,7 +273,7 @@ function BurnRateChart({ projects }: { projects: ApiProject[] }) {
   );
 }
 
-function CategorySpendingChart({ categoryData }: { categoryData: CategorySpending[] }) {
+function CategorySpendingChart({ categoryData }: Readonly<{ categoryData: CategorySpending[] }>) {
   if (categoryData.length === 0) {
     return (
       <div className="text-sm text-zinc-500 text-center py-4">
@@ -306,7 +306,7 @@ function CategorySpendingChart({ categoryData }: { categoryData: CategorySpendin
               </div>
             </div>
             <div className="w-16 text-xs font-semibold text-zinc-900 text-right">
-              {formatUSD(cat.amount)}
+              {formatCOP(cat.amount)}
             </div>
           </div>
         );
@@ -365,13 +365,13 @@ export default async function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-4">
         <Stat
           title="Presupuesto Total"
-          value={formatUSD(totalBudget)}
+          value={formatCOP(totalBudget)}
           deltaTone="muted"
           icon="budget"
         />
         <Stat
           title="Gastado hasta la fecha"
-          value={formatUSD(totalSpent)}
+          value={formatCOP(totalSpent)}
           delta={`▲ ${Math.round(consumedPct)}% del presupuesto`}
           deltaTone={consumedPct > 80 ? "danger" : "warning"}
           icon="spend"
@@ -385,7 +385,7 @@ export default async function DashboardPage() {
         />
         <Stat
           title="Costo Final Predicho"
-          value={formatUSD(projectedFinal)}
+          value={formatCOP(projectedFinal)}
           delta={`+${Math.round(averageOverrun)}% de sobre costo promedio`}
           deltaTone="danger"
           icon="ai"
@@ -456,7 +456,7 @@ export default async function DashboardPage() {
                       {project.name}
                     </div>
                     <div className="mt-1 text-xs text-zinc-500">
-                      {formatUSD(spent)} / {formatUSD(budget)}
+                      {formatCOP(spent)} / {formatCOP(budget)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

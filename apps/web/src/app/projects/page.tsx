@@ -2,13 +2,13 @@ import Link from "next/link";
 
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { listProjects } from "@/lib/projects-api";
+import { listProjects, type ApiProject } from "@/lib/projects-api";
 
-function formatUSD(value: number) {
-  const formatted = value.toLocaleString("en-US", {
+function formatCOP(value: number) {
+  const formatted = value.toLocaleString("es-CO", {
     maximumFractionDigits: 0,
   });
-  return `USD ${formatted}`;
+  return `COP ${formatted}`;
 }
 
 function ProgressLine({ value }: { value: number }) {
@@ -33,7 +33,7 @@ function mapStatusTone(status: string): BadgeTone {
 
 export default async function ProjectsPage() {
   const result = await listProjects()
-    .then((projects) => ({ projects, error: null as string | null }))
+    .then((projects: ApiProject[]) => ({ projects, error: null as string | null }))
     .catch((error: unknown) => ({
       projects: [],
       error: error instanceof Error ? error.message : "Error desconocido al cargar proyectos.",
@@ -57,7 +57,7 @@ export default async function ProjectsPage() {
         <Card className="p-5 text-sm text-zinc-600">{result.error}</Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {result.projects.map((project) => {
+          {result.projects.map((project: ApiProject) => {
             const budget = Number(project.budget);
             const spent = Number(project.total_spent);
             const pct = budget > 0 ? (spent / budget) * 100 : 0;
@@ -87,14 +87,14 @@ export default async function ProjectsPage() {
                     <div>
                       <div className="text-[11px] text-zinc-500">Presupuesto</div>
                       <div className="mt-1 text-xs font-medium text-zinc-700">
-                        {formatUSD(budget)}
+                        {formatCOP(budget)}
                       </div>
                     </div>
                     
                     <div>
                       <div className="text-[11px] text-zinc-500">Gastado</div>
                       <div className="mt-1 text-xs font-medium text-zinc-700">
-                        {formatUSD(spent)}
+                        {formatCOP(spent)}
                       </div>
                     </div>
                   </div>

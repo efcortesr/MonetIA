@@ -49,6 +49,35 @@ export type ApiRecommendation = {
   project?: string;
 };
 
+export type ApiBudgetAnalysis = {
+  budget: number;
+  spent: number;
+  remaining: number;
+  over_budget: number;
+  deviation_level: "Leve" | "Moderada" | "Crítica";
+  consumed_pct: number;
+  execution_percentage: number;
+  budget_deviation: number;
+};
+
+export type ApiFinancialDashboard = {
+  summary: {
+    budget: number;
+    total_spent: number;
+    total_remaining: number;
+    total_over_budget: number;
+    total_execution_percentage: number;
+    total_budget_deviation: number;
+    total_deviation_level: "Leve" | "Moderada" | "Crítica";
+    filtered_spent: number;
+  };
+  charts: {
+    by_category: { id: number; name: string; color: string; value: number }[];
+    by_date: { date: string; value: number }[];
+  };
+  expenses: ApiExpense[];
+};
+
 export type CreateProjectRequest = Omit<ApiProject, 'id' | 'owner' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
 export type CreateExpenseRequest = Omit<ApiExpense, 'id' | 'user' | 'receipt_url' | 'status'>;
 export type CreateProjectRoleRequest = Omit<ApiProjectRole, 'id'>;
@@ -141,4 +170,35 @@ export async function getProjectRecommendations(projectId: string | number) {
     cache: "no-store",
   });
   return data.results || [];
+}
+
+export async function generateProjectRecommendations(projectId: string | number) {
+  const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/generate-recommendations/`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return data.results || [];
+}
+
+export async function getProjectBudgetAnalysis(projectId: string | number) {
+  return apiFetch<ApiBudgetAnalysis>(`/projects/${projectId}/budget-analysis/`, {
+    cache: "no-store",
+  });
+}
+
+export async function getProjectFinancialDashboard(
+  projectId: string | number,
+  filters?: { start_date?: string; end_date?: string; category?: string }
+) {
+  const params = new URLSearchParams();
+  if (filters?.start_date) params.append("start_date", filters.start_date);
+  if (filters?.end_date) params.append("end_date", filters.end_date);
+  if (filters?.category) params.append("category", filters.category);
+  
+  const query = params.toString();
+  const url = `/projects/${projectId}/financial-dashboard/${query ? `?${query}` : ""}`;
+  
+  return apiFetch<ApiFinancialDashboard>(url, {
+    cache: "no-store",
+  });
 }

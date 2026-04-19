@@ -182,7 +182,21 @@ class GeminiRecommendationService:
 
         return {"results": saved_recs}
 
-    def get_recommendations_for_project(self, project):
+    def get_existing_recommendations(self, project):
+        """Fetches recommendations already stored in the database for a given project."""
+        recs = Recommendation.objects.filter(project=project).order_by('created_at')
+        results = []
+        for rec_obj in recs:
+            results.append({
+                "id": str(rec_obj.id),
+                "title": rec_obj.title,
+                "body": rec_obj.body,
+                "priority": rec_obj.priority,
+                "project": project.name
+            })
+        return {"results": results}
+
+    def generate_recommendations(self, project):
         metrics = self._calculate_metrics(project)
 
         if not self.api_key or not self.client:
