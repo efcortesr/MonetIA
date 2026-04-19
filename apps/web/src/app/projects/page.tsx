@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { listProjects } from "@/lib/projects-api";
+import { listProjects, type ApiProject } from "@/lib/projects-api";
 
 function formatCOP(value: number) {
   const formatted = value.toLocaleString("es-CO", {
