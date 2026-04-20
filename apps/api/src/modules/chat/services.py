@@ -15,7 +15,7 @@ class FinancialChatService:
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
 
     def _build_context(self, project_id=None) -> str:
-        qs = (
+        qs = ( 
             Project.objects
             .prefetch_related("expenses__category", "roles")
             .filter(pk=project_id) if project_id
@@ -33,7 +33,7 @@ class FinancialChatService:
             budget    = p.budget
             spent     = p.total_spent
             remaining = p.remaining_budget
-            pct       = (spent / budget * 100) if budget > 0 else Decimal("0")
+            pct       = (spent / budget * 100) if budget and budget > 0 else Decimal("0")
 
             total_budget += budget
             total_spent  += spent
@@ -82,6 +82,10 @@ INSTRUCCIONES:
 PREGUNTA DEL USUARIO: {question}"""
 
     def answer(self, question: str, project_id=None) -> str:
+        
+        if not question or not question.strip():
+            return "Por favor, ingresa una pregunta válida."
+        
         if not self.client:
             return (
                 "El motor de IA no está configurado. "
@@ -95,7 +99,10 @@ PREGUNTA DEL USUARIO: {question}"""
                 contents=prompt,
                 config={"max_output_tokens": 200},
             )
-            return (response.text or "").strip()
+            text = (response.text or "").strip()
+            
+            if not text:
+                return "No se pudo generar una respuesta"
 
         except Exception as exc:
             logger.error("Error Gemini chat: %s", exc)

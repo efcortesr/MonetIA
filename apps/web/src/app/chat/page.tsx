@@ -179,16 +179,14 @@ export default function ChatPage() {
 
 async function callGemini(
   userMessage: string,
-  context: FinancialContext
 ): Promise<string> {
   // Construimos el system prompt igual que antes
-  const systemPrompt = buildSystemPrompt(context);
 
   const response = await fetch(`${API_BASE}/chat/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      question: `${systemPrompt}\n\nUsuario: ${userMessage}`,
+      question: userMessage,
     }),
   });
 
@@ -228,7 +226,7 @@ async function callGemini(
 
     try {
       const context = ctx ?? { projects: [], expenses: [], categories: [] };
-      const reply = await callGemini(msg, context);
+      const reply = await callGemini(msg);
       const pills = extractPills(msg, context);
       const botMsg: Message = {
         id: Date.now() + 1,
