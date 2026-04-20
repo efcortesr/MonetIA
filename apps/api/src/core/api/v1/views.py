@@ -183,14 +183,12 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         over_budget = max(0, spent - budget)
 
         consumed_pct = (spent / budget * 100) if budget > 0 else 0
-
         if consumed_pct < 70:
             deviation = "Leve"
         elif consumed_pct <= 90:
             deviation = "Moderada"
         else:
             deviation = "Crítica"
-
         return Response({
             "budget": budget,
             "spent": spent,
@@ -207,12 +205,10 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         alerts = project.alerts.all().order_by("-created_at")
         return Response(AlertSerializer(alerts, many=True).data)
-
     @action(detail=True, methods=["get"], url_path="financial-dashboard")
     def financial_dashboard(self, request, pk=None):
         from django.db.models import Sum
         project = self.get_object()
-
         # Global Summary (Total Project)
         total_spent = project.total_spent
         total_budget = project.budget
@@ -234,7 +230,6 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
         category_id = request.query_params.get("category")
-
         if start_date:
             expenses = expenses.filter(date__gte=start_date)
         if end_date:
@@ -252,13 +247,11 @@ class ProjectsViewSet(viewsets.ModelViewSet):
             .annotate(total=Sum("amount"))
             .order_by("-total")
         )
-
         by_date = (
             expenses.values("date")
             .annotate(total=Sum("amount"))
             .order_by("date")
         )
-
         return Response({
             "summary": {
                 "budget": total_budget,
@@ -352,7 +345,6 @@ class RecommendationsViewSet(viewsets.ViewSet):
 
         service = GeminiRecommendationService()
         all_results = []
-
         for project in projects:
             data = service.get_existing_recommendations(project)
             if "results" in data:

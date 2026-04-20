@@ -94,7 +94,6 @@ export default async function ProjectDetailsPage({
 
   const budgetAlert = alerts.find((alert) => alert.type === "budget_threshold");
   const alertTone = budgetAlert?.severity === "Crítica" ? "rose" : "amber";
-
   // Time calculation 
   const timelinePct = (() => {
     const startObj = new Date(project.start_date).getTime();

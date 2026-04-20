@@ -13,6 +13,20 @@ class UserProfile(models.Model):
     db_table = "user_profiles"
 
 
+class Recommendation(models.Model):
+  project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name="recommendations_list")
+  title = models.CharField(max_length=255)
+  body = models.TextField()
+  priority = models.CharField(max_length=50)
+  created_at = models.DateTimeField(auto_now_add=True)
+
+  class Meta:
+    db_table = "recommendations"
+
+  def __str__(self):
+    return f"[{self.priority}] {self.title} - {self.project.name}"
+
+
 class Category(models.Model):
   name = models.CharField(max_length=120, unique=True)
   color = models.CharField(max_length=20, blank=True)

@@ -58,7 +58,6 @@ export type ApiAlert = {
   is_read: boolean;
   created_at: string;
 };
-
 export type ApiBudgetAnalysis = {
   budget: number;
   spent: number;
@@ -123,7 +122,6 @@ export type ApiAiInsights = {
   projection: ApiAiProjection | null;
   risk_factors: ApiAiRiskFactor[];
 };
-
 export type CreateProjectRequest = Omit<ApiProject, 'id' | 'owner' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
 export type CreateExpenseRequest = Omit<ApiExpense, 'id' | 'user' | 'receipt_url' | 'status'>;
 export type CreateProjectRoleRequest = Omit<ApiProjectRole, 'id'>;
@@ -223,7 +221,6 @@ export async function getProjectAlerts(projectId: string | number) {
     cache: "no-store",
   });
 }
-
 export async function generateProjectRecommendations(projectId: string | number) {
   const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/generate-recommendations/`, {
     method: "POST",

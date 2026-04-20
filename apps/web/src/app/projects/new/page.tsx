@@ -1,29 +1,53 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Card } from "@/components/ui/Card";
-import { createProject, type CreateProjectRequest } from "@/lib/projects-api";
+import { createProject } from "@/lib/projects-api";
 
-export default async function NewProjectPage() {
-  async function handleSubmit(formData: FormData) {
-    "use server";
+export default function NewProjectPage() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [budgetDisplay, setBudgetDisplay] = useState("");
+  const [budgetRaw, setBudgetRaw] = useState(0);
+
+  const formatNumber = (val: string) => {
+    // Remove non-numeric characters except for formatting
+    const numericValue = val.replaceAll(/\D/g, "");
+    if (!numericValue) return "";
+    return Number(numericValue).toLocaleString("es-CO");
+  };
+
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const numeric = value.replaceAll(/\D/g, "");
+    setBudgetRaw(Number(numeric));
+    setBudgetDisplay(formatNumber(numeric));
+  };
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const formData = new FormData(e.currentTarget);
     
     try {
       const project = {
-        owner: 1, // TODO: Get actual user ID from auth
         name: formData.get("name") as string,
         description: formData.get("description") as string || "",
-        budget: formData.get("budget") as string,
+        budget: budgetRaw.toString(),
         start_date: formData.get("start_date") as string,
         end_date: formData.get("end_date") as string,
         status: "planning",
       };
       
       const result = await createProject(project);
-      redirect(`/projects/${result.id}`);
+      router.push(`/projects/${result.id}`);
     } catch (error) {
-      // TODO: Handle error properly
       console.error("Error creating project:", error);
+      setIsSubmitting(false);
     }
   }
 
@@ -40,7 +64,7 @@ export default async function NewProjectPage() {
       </div>
 
       <Card className="p-0">
-        <form action={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-4">
               <div>
@@ -59,17 +83,16 @@ export default async function NewProjectPage() {
 
               <div>
                 <label htmlFor="budget" className="block text-sm font-medium text-zinc-700 mb-1">
-                  Presupuesto *
+                  Presupuesto (COP) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="budget"
-                  name="budget"
+                  value={budgetDisplay}
+                  onChange={handleBudgetChange}
                   required
-                  step="0.01"
-                  min="0"
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="100000.00"
+                  placeholder="100.000.000"
                 />
               </div>
 
@@ -127,9 +150,10 @@ export default async function NewProjectPage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                Crear Proyecto
+                {isSubmitting ? "Creando..." : "Crear Proyecto"}
               </button>
             </div>
           </div>
