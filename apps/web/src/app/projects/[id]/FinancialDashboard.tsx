@@ -87,6 +87,17 @@ export default function FinancialDashboard({
   if (!data) return null;
 
   const { summary, charts, expenses } = data;
+  const periodTone = summary.total_execution_percentage > 90 ? "danger" : "info";
+  const balanceSub = summary.total_over_budget > 0
+    ? "Excedido"
+    : `${Math.round(100 - summary.total_execution_percentage)}% disponible`;
+  const balanceTone = summary.total_over_budget > 0 ? "danger" : "success";
+  let riskTone: "danger" | "warning" | "success" = "success";
+  if (summary.total_execution_percentage > 90) {
+    riskTone = "danger";
+  } else if (summary.total_execution_percentage >= 70) {
+    riskTone = "warning";
+  }
 
   return (
     <div className="space-y-6">
@@ -182,29 +193,19 @@ export default function FinancialDashboard({
           label="Gasto en Periodo"
           value={formatCurrency(summary.filtered_spent)}
           sub={`Total proyecto: ${formatCurrency(summary.total_spent)}`}
-          tone={summary.total_execution_percentage > 90 ? "danger" : "info"}
+          tone={periodTone}
         />
         <StatCard
           label="Saldo Restante"
           value={formatCurrency(summary.total_remaining)}
-          sub={
-            summary.total_over_budget > 0
-              ? "Excedido"
-              : `${Math.round(100 - summary.total_execution_percentage)}% disponible`
-          }
-          tone={summary.total_over_budget > 0 ? "danger" : "success"}
+          sub={balanceSub}
+          tone={balanceTone}
         />
         <StatCard
           label="Nivel de Riesgo"
           value={summary.total_deviation_level}
           sub={`Desviacion: ${formatCurrency(summary.total_budget_deviation)}`}
-          tone={
-            summary.total_execution_percentage > 90
-              ? "danger"
-              : summary.total_execution_percentage >= 70
-                ? "warning"
-                : "success"
-          }
+          tone={riskTone}
           isBadge
         />
       </div>

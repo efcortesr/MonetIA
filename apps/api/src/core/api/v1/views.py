@@ -13,6 +13,9 @@ from modules.recommendations.services import GeminiRecommendationService
 from .serializers import AlertSerializer, CategorySerializer, ExpenseSerializer, ProjectRoleSerializer, ProjectSerializer
 
 BUDGET_ALERT_THRESHOLD = Decimal("0.80")
+SEVERITY_CRITICAL = "Crítica"
+SEVERITY_WARNING = "Moderada"
+SEVERITY_LOW = "Leve"
 
 
 def sync_budget_alert(project):
@@ -22,10 +25,10 @@ def sync_budget_alert(project):
 
     spent = project.total_spent
     threshold_amount = budget * BUDGET_ALERT_THRESHOLD
-    consumed_pct = (spent / budget * 100) if budget > 0 else Decimal("0.00")
+    consumed_pct = (spent / budget) * 100
 
     if spent >= threshold_amount:
-        severity = "Crítica" if spent >= budget else "Moderada"
+        severity = SEVERITY_CRITICAL if spent >= budget else SEVERITY_WARNING
         message = (
             f"Gasto {consumed_pct:.1f}% del presupuesto. "
             "Revisa gastos antes de exceder el límite."
@@ -56,12 +59,12 @@ def month_label(d):
 
 def get_risk_severity(consumed_pct, predicted_total, budget):
     if budget <= 0:
-        return "Leve"
+        return SEVERITY_LOW
     if consumed_pct >= 90 or predicted_total > budget:
-        return "Crítica"
+        return SEVERITY_CRITICAL
     if consumed_pct >= 80:
-        return "Moderada"
-    return "Leve"
+        return SEVERITY_WARNING
+    return SEVERITY_LOW
 
 
 def generate_projection(project, horizon=10):
@@ -153,8 +156,8 @@ class ProjectsViewSet(viewsets.ModelViewSet):
             serializer.save(owner=self.request.user)
             return
 
-        User = get_user_model()
-        demo_user, _ = User.objects.get_or_create(
+        user_model = get_user_model()
+        demo_user, _ = user_model.objects.get_or_create(
             username="demo",
             defaults={"email": "demo@example.com"},
         )
@@ -184,11 +187,11 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 
         consumed_pct = (spent / budget * 100) if budget > 0 else 0
         if consumed_pct < 70:
-            deviation = "Leve"
+            deviation = SEVERITY_LOW
         elif consumed_pct <= 90:
-            deviation = "Moderada"
+            deviation = SEVERITY_WARNING
         else:
-            deviation = "Crítica"
+            deviation = SEVERITY_CRITICAL
         return Response({
             "budget": budget,
             "spent": spent,
@@ -205,6 +208,7 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         alerts = project.alerts.all().order_by("-created_at")
         return Response(AlertSerializer(alerts, many=True).data)
+
     @action(detail=True, methods=["get"], url_path="financial-dashboard")
     def financial_dashboard(self, request, pk=None):
         from django.db.models import Sum
@@ -220,10 +224,10 @@ class ProjectsViewSet(viewsets.ModelViewSet):
 
         def get_deviation_level(pct):
             if pct < 70:
-                return "Leve"
+                return SEVERITY_LOW
             if pct <= 90:
-                return "Moderada"
-            return "Crítica"
+                return SEVERITY_WARNING
+            return SEVERITY_CRITICAL
 
         # Filtering
         expenses = project.expenses.all().select_related("category").order_by("-date")
@@ -296,13 +300,16 @@ class ExpensesViewSet(viewsets.ModelViewSet):
         "project", "category", "user").all().order_by("id")
     serializer_class = ExpenseSerializer
 
-    def perform_create(self, serializer):
+    def _save_and_sync(self, serializer):
         expense = serializer.save()
         sync_budget_alert(expense.project)
+        return expense
+
+    def perform_create(self, serializer):
+        self._save_and_sync(serializer)
 
     def perform_update(self, serializer):
-        expense = serializer.save()
-        sync_budget_alert(expense.project)
+        self._save_and_sync(serializer)
 
     def perform_destroy(self, instance):
         project = instance.project
@@ -405,7 +412,7 @@ class PredictionsViewSet(viewsets.ViewSet):
             })
 
         insights.sort(key=lambda item: (
-            item["severity"] != "Crítica", -item["confidence"]))
+            item["severity"] != SEVERITY_CRITICAL, -item["confidence"]))
         top = insights[0]
 
         risk_factors = []
