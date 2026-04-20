@@ -278,7 +278,7 @@ export default function ChatPage() {
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">◎</span>
-          Asistente Financiero IA
+          <span>Asistente Financiero IA</span>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           Consulta información financiera de tus proyectos en lenguaje natural.
