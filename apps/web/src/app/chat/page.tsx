@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+
 
 type Message = {
   id: number;
@@ -270,6 +272,13 @@ async function callGemini(
 
   return (
     <div className="space-y-5">
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
+      >
+        ← Volver 
+      </Link>
+
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">◎</span>
