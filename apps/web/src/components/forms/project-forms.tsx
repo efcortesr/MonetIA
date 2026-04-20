@@ -1,48 +1,53 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import type { ApiCategory, ApiExpense, ApiProjectRole } from "@/lib/projects-api";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { createExpenseAction, deleteExpenseAction, updateExpenseAction } from "@/app/actions/expense-actions";
 import { createRoleAction, deleteRoleAction } from "@/app/actions/role-actions";
-
-// ─── Expense Form ────────────────────────────────────────────────────────────
+import type { ApiCategory, ApiExpense, ApiProjectRole } from "@/lib/projects-api";
 
 interface ExpenseFormProps {
   projectId: string;
   categories: ApiCategory[];
+  mode?: "create" | "edit";
   initialData?: ApiExpense;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function ExpenseForm({ 
-  projectId, 
-  categories, 
-  initialData, 
-  onSuccess, 
-  onCancel 
+export function ExpenseForm({
+  projectId,
+  categories,
+  mode = "create",
+  initialData,
+  onSuccess,
+  onCancel,
 }: Readonly<ExpenseFormProps>) {
-  const [showForm, setShowForm] = useState(!!initialData);
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const isEdit = mode === "edit";
+  const [showForm, setShowForm] = useState(isEdit);
   const [isPending, startTransition] = useTransition();
 
-  const isEdit = !!initialData;
-
   const handleSubmit = async (formData: FormData) => {
-    formData.append("projectId", projectId);
+    formData.set("projectId", projectId);
+
     startTransition(async () => {
       if (isEdit) {
+        if (!initialData) return;
         await updateExpenseAction(initialData.id, formData);
       } else {
         await createExpenseAction(formData);
       }
-      
-      if (isEdit) {
-        // En modo edición mantenemos el formulario abierto si es necesario, 
-        // pero aquí la lógica original cerraba el de creación.
-      } else {
-        setShowForm(false);
+
+      router.refresh();
+
+      if (!isEdit) {
+        formRef.current?.reset();
       }
+
       onSuccess?.();
     });
   };
@@ -59,14 +64,14 @@ export function ExpenseForm({
   }
 
   return (
-    <Card className={`p-0 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 ${isEdit ? '' : 'mt-4'}`}>
+    <Card className={`p-0 border-blue-100 shadow-lg animate-in fade-in slide-in-from-top-2 duration-300 ${isEdit ? "" : "mt-4"}`}>
       <CardHeader title={isEdit ? "Editar gasto" : "Registrar nuevo gasto"} />
       <CardBody>
-        <form action={handleSubmit} className="space-y-4">
+        <form ref={formRef} action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Descripción
+                Descripcion
               </label>
               <input
                 type="text"
@@ -90,13 +95,13 @@ export function ExpenseForm({
                 min="0"
                 defaultValue={initialData ? Number(initialData.amount) : ""}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="100.000"
+                placeholder="100000"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-zinc-700 mb-1">
-                Categoría
+                Categoria
               </label>
               <select
                 name="category"
@@ -104,7 +109,7 @@ export function ExpenseForm({
                 defaultValue={initialData?.category}
                 className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
-                <option value="">Seleccionar categoría</option>
+                <option value="">Seleccionar categoria</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -132,11 +137,12 @@ export function ExpenseForm({
               type="button"
               onClick={() => {
                 if (isEdit) {
-                   onCancel?.();
-                } else {
-                   setShowForm(false);
-                   onCancel?.();
+                  onCancel?.();
+                  return;
                 }
+
+                setShowForm(false);
+                onCancel?.();
               }}
               disabled={isPending}
               className="px-4 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors disabled:opacity-50"
@@ -148,8 +154,8 @@ export function ExpenseForm({
               disabled={isPending}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending 
-                ? (isEdit ? "Guardando..." : "Registrando…") 
+              {isPending
+                ? (isEdit ? "Guardando..." : "Registrando...")
                 : (isEdit ? "Guardar cambios" : "Registrar gasto")}
             </button>
           </div>
@@ -158,8 +164,6 @@ export function ExpenseForm({
     </Card>
   );
 }
-
-// ─── Expense List Item (with delete) ─────────────────────────────────────────
 
 interface ExpenseItemProps {
   expense: ApiExpense;
@@ -170,7 +174,7 @@ export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
-    if (!confirm("¿Eliminar este gasto?")) return;
+    if (!confirm("Eliminar este gasto?")) return;
     startTransition(async () => {
       await deleteExpenseAction(expense.id, projectId);
     });
@@ -188,7 +192,7 @@ export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
     >
       <div className="min-w-0">
         <div className="font-medium text-zinc-800 truncate">
-          {expense.description || "Gasto sin descripción"}
+          {expense.description || "Gasto sin descripcion"}
         </div>
         <div className="text-xs text-zinc-500 mt-0.5">{expense.date}</div>
       </div>
@@ -201,7 +205,7 @@ export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
           aria-label="Eliminar gasto"
         >
           {isPending ? (
-            <span className="text-xs">…</span>
+            <span className="text-xs">...</span>
           ) : (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path
@@ -218,8 +222,6 @@ export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
     </div>
   );
 }
-
-// ─── Role Form ────────────────────────────────────────────────────────────────
 
 interface RoleFormProps {
   projectId: string;
@@ -256,9 +258,7 @@ export function RoleForm({ projectId }: RoleFormProps) {
         <CardBody>
           <div className="w-full overflow-x-hidden">
             <form action={handleSubmit} className="space-y-4 w-full">
-              {/* Inputs en vertical */}
               <div className="flex flex-col gap-4 w-full">
-                {/* Nombre */}
                 <div className="min-w-0">
                   <label className="block text-sm font-medium text-zinc-700 mb-1">
                     Nombre del rol
@@ -272,7 +272,6 @@ export function RoleForm({ projectId }: RoleFormProps) {
                   />
                 </div>
 
-                {/* Salario */}
                 <div className="min-w-0">
                   <label className="block text-sm font-medium text-zinc-700 mb-1">
                     Salario mensual (COP)
@@ -284,12 +283,11 @@ export function RoleForm({ projectId }: RoleFormProps) {
                     step="0.01"
                     min="0"
                     className="w-full min-w-0 px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    placeholder="2.500.000"
+                    placeholder="2500000"
                   />
                 </div>
               </div>
 
-              {/* Botones */}
               <div className="flex flex-wrap justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -305,7 +303,7 @@ export function RoleForm({ projectId }: RoleFormProps) {
                   disabled={isPending}
                   className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isPending ? "Agregando…" : "Agregar rol"}
+                  {isPending ? "Agregando..." : "Agregar rol"}
                 </button>
               </div>
             </form>
@@ -316,8 +314,6 @@ export function RoleForm({ projectId }: RoleFormProps) {
   );
 }
 
-// ─── Role List Item (with delete) ─────────────────────────────────────────────
-
 interface RoleItemProps {
   role: ApiProjectRole;
   projectId: string;
@@ -327,7 +323,7 @@ export function RoleItem({ role, projectId }: RoleItemProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
-    if (!confirm(`¿Eliminar el rol "${role.name}"?`)) return;
+    if (!confirm(`Eliminar el rol "${role.name}"?`)) return;
     startTransition(async () => {
       await deleteRoleAction(role.id, projectId);
     });
@@ -356,7 +352,7 @@ export function RoleItem({ role, projectId }: RoleItemProps) {
           aria-label="Eliminar rol"
         >
           {isPending ? (
-            <span className="text-xs">…</span>
+            <span className="text-xs">...</span>
           ) : (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path
