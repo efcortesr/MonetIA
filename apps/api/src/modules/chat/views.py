@@ -1,14 +1,18 @@
 import json
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods
 
 from .services import FinancialChatService
 
 
+@ensure_csrf_cookie
 @csrf_protect
-@require_POST
+@require_http_methods(["GET", "POST"])
 def chat_view(request):
+    if request.method == "GET":
+        return JsonResponse({"detail": "CSRF cookie set."})
+
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
