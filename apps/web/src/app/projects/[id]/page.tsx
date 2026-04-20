@@ -1,23 +1,21 @@
 import Link from "next/link";
 
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
-import { Progress } from "@/components/ui/Progress";
 import {
-  ExpenseForm,
-  ExpenseItem,
   RoleForm,
   RoleItem,
 } from "@/components/forms/project-forms";
 import {
   getProject,
-  listProjectExpenses,
+  getProjectAlerts,
   listProjectRoles,
   listCategories,
 } from "@/lib/projects-api";
+import ProjectRecommendations from "./ProjectRecommendations";
+import FinancialDashboard from "./FinancialDashboard";
 
-function formatUSD(value: number) {
-  return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+function formatCOP(value: number) {
+  return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
 function Kpi({
@@ -60,11 +58,11 @@ export default async function ProjectDetailsPage({
 }) {
   const { id } = await params;
 
-  const [project, expenses, roles, categories] = await Promise.all([
+  const [project, roles, categories, alerts] = await Promise.all([
     getProject(id).catch(() => null),
-    listProjectExpenses(id).catch(() => []),
     listProjectRoles(id).catch(() => []),
     listCategories().catch(() => []),
+    getProjectAlerts(id).catch(() => []),
   ]);
 
   if (!project) {
@@ -94,14 +92,17 @@ export default async function ProjectDetailsPage({
   const consumedPct = budget > 0 ? (totalSpent / budget) * 100 : 0;
   const isOverBudget = remaining < 0;
 
-  // Rough timeline % based on start/end dates
-  const now = Date.now();
-  const start = new Date(project.start_date).getTime();
-  const end = new Date(project.end_date).getTime();
-  const timelinePct =
-    end > start
-      ? Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100))
-      : 0;
+  const budgetAlert = alerts.find((alert) => alert.type === "budget_threshold");
+  const alertTone = budgetAlert?.severity === "Crítica" ? "rose" : "amber";
+
+  // Time calculation 
+  const timelinePct = (() => {
+    const startObj = new Date(project.start_date).getTime();
+    const endObj = new Date(project.end_date).getTime();
+    if (endObj <= startObj) return 0;
+    const nowTs = new Date().getTime();
+    return Math.min(100, Math.max(0, ((nowTs - startObj) / (endObj - startObj)) * 100));
+  })();
 
   return (
     <div className="space-y-5">
@@ -124,14 +125,40 @@ export default async function ProjectDetailsPage({
         </Link>
       </div>
 
+      {/* ── Budget threshold alert ── */}
+      {budgetAlert && (
+        <div
+          className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+            alertTone === "rose"
+              ? "border-rose-200 bg-rose-50"
+              : "border-amber-200 bg-amber-50"
+          }`}
+        >
+          <span
+            className={`font-bold text-lg ${
+              alertTone === "rose" ? "text-rose-600" : "text-amber-600"
+            }`}
+          >
+            !
+          </span>
+          <div
+            className={`text-sm ${
+              alertTone === "rose" ? "text-rose-700" : "text-amber-700"
+            }`}
+          >
+            <span className="font-semibold">Alerta de presupuesto</span> — {budgetAlert.message}
+          </div>
+        </div>
+      )}
+
       {/* ── Over-budget banner ── */}
       {isOverBudget && (
         <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
           <span className="text-rose-600 font-bold text-lg">!</span>
           <div className="text-sm text-rose-700">
             <span className="font-semibold">Presupuesto excedido</span> — el gasto
-            total ({formatUSD(totalSpent)}) supera el presupuesto en{" "}
-            <span className="font-semibold">{formatUSD(Math.abs(remaining))}</span>.
+            total ({formatCOP(totalSpent)}) supera el presupuesto en{" "}
+            <span className="font-semibold">{formatCOP(Math.abs(remaining))}</span>.
           </div>
         </div>
       )}
@@ -140,19 +167,19 @@ export default async function ProjectDetailsPage({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
           title="Presupuesto"
-          value={formatUSD(budget)}
+          value={formatCOP(budget)}
           sub={`${project.start_date} → ${project.end_date}`}
           tone="neutral"
         />
         <Kpi
           title="Total gastado"
-          value={formatUSD(totalSpent)}
-          sub={`Gastos ${formatUSD(totalExpenses)} + Roles ${formatUSD(totalRolesCost)}`}
+          value={formatCOP(totalSpent)}
+          sub={`Gastos ${formatCOP(totalExpenses)} + Roles ${formatCOP(totalRolesCost)}`}
           tone={consumedPct > 90 ? "danger" : consumedPct > 70 ? "warning" : "neutral"}
         />
         <Kpi
           title="Presupuesto restante"
-          value={formatUSD(remaining)}
+          value={formatCOP(remaining)}
           sub={isOverBudget ? "⚠ Sobrepasado" : `${Math.round(100 - consumedPct)}% disponible`}
           tone={isOverBudget ? "danger" : remaining < budget * 0.15 ? "warning" : "success"}
         />
@@ -164,106 +191,29 @@ export default async function ProjectDetailsPage({
         />
       </div>
 
-      {/* ── Progress bars ── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-0 lg:col-span-2">
-          <CardHeader title="Progreso del proyecto" />
-          <CardBody className="space-y-5">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-zinc-600">Tiempo transcurrido</span>
-                <span className="font-semibold text-zinc-900">
-                  {Math.round(timelinePct)}%
-                </span>
-              </div>
-              <Progress value={timelinePct} />
-            </div>
+      {/* ── Financial Dashboard (KPIs, Charts, Filters, Table) ── */}
+      <section id="financial-dashboard" className="space-y-6">
+        <FinancialDashboard projectId={id} categories={categories} />
+      </section>
 
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-zinc-600">Presupuesto consumido</span>
-                <span
-                  className={`font-semibold ${
-                    consumedPct > 100
-                      ? "text-rose-600"
-                      : consumedPct > 80
-                        ? "text-amber-600"
-                        : "text-zinc-900"
-                  }`}
-                >
-                  {Math.round(consumedPct)}%
-                </span>
-              </div>
-              <Progress value={consumedPct} />
-            </div>
+      {/* ── Recommendations IA ── */}
+      <ProjectRecommendations projectId={id} />
 
-            {/* Breakdown */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
-              <div className="rounded-lg bg-zinc-50 p-3">
-                <div className="text-xs text-zinc-500 mb-1">
-                  Gastos directos
-                </div>
-                <div className="text-sm font-semibold text-zinc-900">
-                  {formatUSD(totalExpenses)}
-                </div>
-                <div className="text-xs text-zinc-400">
-                  {expenses.length} registros
-                </div>
-              </div>
-              <div className="rounded-lg bg-zinc-50 p-3">
-                <div className="text-xs text-zinc-500 mb-1">Costo de roles</div>
-                <div className="text-sm font-semibold text-zinc-900">
-                  {formatUSD(totalRolesCost)}
-                </div>
-                <div className="text-xs text-zinc-400">
-                  {roles.length} roles
-                </div>
-              </div>
-            </div>
-
-            <p className="text-xs text-zinc-400">
-              Los totales son calculados automáticamente por el servidor cada
-              vez que se agrega o elimina un gasto o rol.
-            </p>
-          </CardBody>
-        </Card>
-
-        {/* ── Roles panel ── */}
-        <Card className="p-0">
-          <CardHeader
-            title="Roles del proyecto"
-            subtitle={`Costo total: ${formatUSD(totalRolesCost)}`}
-            right={<RoleForm projectId={id} />}
-          />
-          <CardBody className="space-y-3">
-            {roles.length === 0 ? (
-              <div className="text-sm text-zinc-500">
-                Aún no hay roles. Agrega uno para incluirlo en el cálculo.
-              </div>
-            ) : (
-              roles.map((role) => (
-                <RoleItem key={role.id} role={role} projectId={id} />
-              ))
-            )}
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* ── Expenses panel ── */}
+      {/* ── Personnel Costs / Roles (Kept separate for role management) ── */}
       <Card className="p-0">
         <CardHeader
-          title="Gastos registrados"
-          subtitle={`Total: ${formatUSD(totalExpenses)} — ${expenses.length} registros`}
-          right={<ExpenseForm projectId={id} categories={categories} />}
+          title="Personal y Roles"
+          subtitle={`Inversión total en talento: ${formatCOP(totalRolesCost)}`}
+          right={<RoleForm projectId={id} />}
         />
         <CardBody className="space-y-3">
-          {expenses.length === 0 ? (
+          {roles.length === 0 ? (
             <div className="text-sm text-zinc-500">
-              No hay gastos registrados. Agrega el primero con el botón de arriba.
+              Aún no hay roles. Agrega uno para incluirlo en el cálculo.
             </div>
           ) : (
-            expenses.map((expense) => (
-              <ExpenseItem key={expense.id} expense={expense} projectId={id} />
+            roles.map((role) => (
+              <RoleItem key={role.id} role={role} projectId={id} />
             ))
           )}
         </CardBody>

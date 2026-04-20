@@ -41,7 +41,90 @@ export type ApiCategory = {
   icon: string;
 };
 
-export type CreateProjectRequest = Omit<ApiProject, 'id' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
+export type ApiRecommendation = {
+  id: string;
+  title: string;
+  body: string;
+  priority: "Alta" | "Media" | "Baja";
+  project?: string;
+};
+
+export type ApiAlert = {
+  id: number;
+  project: number;
+  type: string;
+  message: string;
+  severity: "Moderada" | "Crítica" | "Baja" | "Media" | "Alta" | string;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type ApiBudgetAnalysis = {
+  budget: number;
+  spent: number;
+  remaining: number;
+  over_budget: number;
+  deviation_level: "Leve" | "Moderada" | "Crítica";
+  consumed_pct: number;
+  execution_percentage: number;
+  budget_deviation: number;
+};
+
+export type ApiFinancialDashboard = {
+  summary: {
+    budget: number;
+    total_spent: number;
+    total_remaining: number;
+    total_over_budget: number;
+    total_execution_percentage: number;
+    total_budget_deviation: number;
+    total_deviation_level: "Leve" | "Moderada" | "Crítica";
+    filtered_spent: number;
+  };
+  charts: {
+    by_category: { id: number; name: string; color: string; value: number }[];
+    by_date: { date: string; value: number }[];
+  };
+  expenses: ApiExpense[];
+};
+
+export type ApiAiInsightSummary = {
+  project_id: number;
+  project_name: string;
+  severity: "Crítica" | "Moderada" | "Leve" | string;
+  predicted_total: number;
+  budget: number;
+  confidence: number;
+  consumed_pct: number;
+  generated_at: string;
+};
+
+export type ApiAiProjection = {
+  labels: string[];
+  today_index: number;
+  actual: number[];
+  optimistic: number[];
+  expected: number[];
+  pessimistic: number[];
+  predicted_total: number;
+  budget: number;
+};
+
+export type ApiAiRiskFactor = {
+  id: string;
+  title: string;
+  tone: "info" | "warning" | "danger" | "success" | "neutral" | string;
+  message: string;
+  action: string;
+};
+
+export type ApiAiInsights = {
+  summary: ApiAiInsightSummary | null;
+  projection: ApiAiProjection | null;
+  risk_factors: ApiAiRiskFactor[];
+};
+
+export type CreateProjectRequest = Omit<ApiProject, 'id' | 'owner' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
 export type CreateExpenseRequest = Omit<ApiExpense, 'id' | 'user' | 'receipt_url' | 'status'>;
 export type CreateProjectRoleRequest = Omit<ApiProjectRole, 'id'>;
 
@@ -117,4 +200,64 @@ export async function getSpendingByCategory() {
     console.error("Error calculating spending by category:", error);
     return [];
   }
+}
+
+export async function getGlobalRecommendations() {
+  const data = await apiFetch<{ results: ApiRecommendation[] }>("/recommendations/", {
+    next: { revalidate: 0 },
+    cache: "no-store",
+  });
+  return data.results || [];
+}
+
+export async function getProjectRecommendations(projectId: string | number) {
+  const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/recommendations/`, {
+    next: { revalidate: 0 },
+    cache: "no-store",
+  });
+  return data.results || [];
+}
+
+export async function getProjectAlerts(projectId: string | number) {
+  return apiFetch<ApiAlert[]>(`/projects/${projectId}/alerts/`, {
+    cache: "no-store",
+  });
+}
+
+export async function generateProjectRecommendations(projectId: string | number) {
+  const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/generate-recommendations/`, {
+    method: "POST",
+    cache: "no-store",
+  });
+  return data.results || [];
+}
+
+export async function getProjectBudgetAnalysis(projectId: string | number) {
+  return apiFetch<ApiBudgetAnalysis>(`/projects/${projectId}/budget-analysis/`, {
+    cache: "no-store",
+  });
+}
+
+export async function getProjectFinancialDashboard(
+  projectId: string | number,
+  filters?: { start_date?: string; end_date?: string; category?: string }
+) {
+  const params = new URLSearchParams();
+  if (filters?.start_date) params.append("start_date", filters.start_date);
+  if (filters?.end_date) params.append("end_date", filters.end_date);
+  if (filters?.category) params.append("category", filters.category);
+  
+  const query = params.toString();
+  const url = `/projects/${projectId}/financial-dashboard/${query ? `?${query}` : ""}`;
+  
+  return apiFetch<ApiFinancialDashboard>(url, {
+    cache: "no-store",
+  });
+}
+
+export async function getAiInsights(projectId?: string | number) {
+  const query = projectId ? `?project_id=${projectId}` : "";
+  return apiFetch<ApiAiInsights>(`/predictions/${query}`, {
+    cache: "no-store",
+  });
 }
