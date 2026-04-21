@@ -49,6 +49,15 @@ export type ApiRecommendation = {
   project?: string;
 };
 
+export type ApiAlert = {
+  id: number;
+  project: number;
+  type: string;
+  message: string;
+  severity: "Moderada" | "Crítica" | "Baja" | "Media" | "Alta" | string;
+  is_read: boolean;
+  created_at: string;
+};
 export type ApiBudgetAnalysis = {
   budget: number;
   spent: number;
@@ -78,6 +87,41 @@ export type ApiFinancialDashboard = {
   expenses: ApiExpense[];
 };
 
+export type ApiAiInsightSummary = {
+  project_id: number;
+  project_name: string;
+  severity: "Crítica" | "Moderada" | "Leve" | string;
+  predicted_total: number;
+  budget: number;
+  confidence: number;
+  consumed_pct: number;
+  generated_at: string;
+};
+
+export type ApiAiProjection = {
+  labels: string[];
+  today_index: number;
+  actual: number[];
+  optimistic: number[];
+  expected: number[];
+  pessimistic: number[];
+  predicted_total: number;
+  budget: number;
+};
+
+export type ApiAiRiskFactor = {
+  id: string;
+  title: string;
+  tone: "info" | "warning" | "danger" | "success" | "neutral" | string;
+  message: string;
+  action: string;
+};
+
+export type ApiAiInsights = {
+  summary: ApiAiInsightSummary | null;
+  projection: ApiAiProjection | null;
+  risk_factors: ApiAiRiskFactor[];
+};
 export type CreateProjectRequest = Omit<ApiProject, 'id' | 'owner' | 'total_expenses' | 'total_roles_cost' | 'total_spent' | 'remaining_budget'>;
 export type CreateExpenseRequest = Omit<ApiExpense, 'id' | 'user' | 'receipt_url' | 'status'>;
 export type CreateProjectRoleRequest = Omit<ApiProjectRole, 'id'>;
@@ -172,6 +216,11 @@ export async function getProjectRecommendations(projectId: string | number) {
   return data.results || [];
 }
 
+export async function getProjectAlerts(projectId: string | number) {
+  return apiFetch<ApiAlert[]>(`/projects/${projectId}/alerts/`, {
+    cache: "no-store",
+  });
+}
 export async function generateProjectRecommendations(projectId: string | number) {
   const data = await apiFetch<{ results: ApiRecommendation[] }>(`/projects/${projectId}/generate-recommendations/`, {
     method: "POST",
@@ -199,6 +248,13 @@ export async function getProjectFinancialDashboard(
   const url = `/projects/${projectId}/financial-dashboard/${query ? `?${query}` : ""}`;
   
   return apiFetch<ApiFinancialDashboard>(url, {
+    cache: "no-store",
+  });
+}
+
+export async function getAiInsights(projectId?: string | number) {
+  const query = projectId ? `?project_id=${projectId}` : "";
+  return apiFetch<ApiAiInsights>(`/predictions/${query}`, {
     cache: "no-store",
   });
 }

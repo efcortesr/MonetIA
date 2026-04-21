@@ -7,6 +7,7 @@ import {
 } from "@/components/forms/project-forms";
 import {
   getProject,
+  getProjectAlerts,
   listProjectRoles,
   listCategories,
 } from "@/lib/projects-api";
@@ -57,10 +58,11 @@ export default async function ProjectDetailsPage({
 }) {
   const { id } = await params;
 
-  const [project, roles, categories] = await Promise.all([
+  const [project, roles, categories, alerts] = await Promise.all([
     getProject(id).catch(() => null),
     listProjectRoles(id).catch(() => []),
     listCategories().catch(() => []),
+    getProjectAlerts(id).catch(() => []),
   ]);
 
   if (!project) {
@@ -90,6 +92,8 @@ export default async function ProjectDetailsPage({
   const consumedPct = budget > 0 ? (totalSpent / budget) * 100 : 0;
   const isOverBudget = remaining < 0;
 
+  const budgetAlert = alerts.find((alert) => alert.type === "budget_threshold");
+  const alertTone = budgetAlert?.severity === "Crítica" ? "rose" : "amber";
   // Time calculation 
   const timelinePct = (() => {
     const startObj = new Date(project.start_date).getTime();
@@ -119,6 +123,32 @@ export default async function ProjectDetailsPage({
           ← Volver
         </Link>
       </div>
+
+      {/* ── Budget threshold alert ── */}
+      {budgetAlert && (
+        <div
+          className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+            alertTone === "rose"
+              ? "border-rose-200 bg-rose-50"
+              : "border-amber-200 bg-amber-50"
+          }`}
+        >
+          <span
+            className={`font-bold text-lg ${
+              alertTone === "rose" ? "text-rose-600" : "text-amber-600"
+            }`}
+          >
+            !
+          </span>
+          <div
+            className={`text-sm ${
+              alertTone === "rose" ? "text-rose-700" : "text-amber-700"
+            }`}
+          >
+            <span className="font-semibold">Alerta de presupuesto</span> — {budgetAlert.message}
+          </div>
+        </div>
+      )}
 
       {/* ── Over-budget banner ── */}
       {isOverBudget && (
