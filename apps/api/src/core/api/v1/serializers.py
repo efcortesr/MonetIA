@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.models import Category, Expense, Project, ProjectRole
+from core.models import Alert, Category, Expense, Project, ProjectRole
 
 
 class ProjectRoleSerializer(serializers.ModelSerializer):
@@ -75,4 +75,18 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "date",
             "receipt_url",
             "status",
+        )
+
+
+class AlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Alert
+        fields = (
+            "id",
+            "project",
+            "type",
+            "message",
+            "severity",
+            "is_read",
+            "created_at",
         )

@@ -130,6 +130,49 @@ const SUGGESTIONS = [
   "¿Cuál es la categoría con más gastos?",
 ];
 
+const DOT_KEYS = ["dot-0", "dot-1", "dot-2"];
+
+let csrfReady = false;
+
+function getCookieValue(name: string) {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+async function ensureCsrfCookie(apiBase: string) {
+  if (csrfReady) return;
+  await fetch(`${apiBase}/chat/`, {
+    method: "GET",
+    credentials: "include",
+  });
+  csrfReady = true;
+}
+
+async function callGemini(apiBase: string, userMessage: string): Promise<string> {
+  await ensureCsrfCookie(apiBase);
+  const csrfToken = getCookieValue("csrftoken");
+  const response = await fetch(`${apiBase}/chat/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken ?? "",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      question: userMessage,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error ?? "Error del servidor");
+  }
+
+  const data = await response.json();
+  return data.answer;
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -222,19 +265,26 @@ export default function ChatPage() {
   }
 
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
-    const pills: Message["pills"] = [];
     const totalSpent = context.projects.reduce((s, p) => s + Number(p.total_spent), 0);
     const totalBudget = context.projects.reduce((s, p) => s + Number(p.budget), 0);
     const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
     const lower = text.toLowerCase();
-    if (lower.includes("gast") || lower.includes("presupuesto") || lower.includes("saldo")) {
-      pills.push({ label: fmtCOP(totalSpent) + " gastado", tone: pct > 80 ? "danger" : "info" });
-      pills.push({
-        label: Math.round(pct) + "% consumido",
-        tone: pct > 90 ? "danger" : pct > 70 ? "warn" : "success",
-      });
+    if (!(lower.includes("gast") || lower.includes("presupuesto") || lower.includes("saldo"))) {
+      return [];
     }
-    return pills.slice(0, 3);
+
+    const spentTone = pct > 80 ? "danger" : "info";
+    let consumptionTone: Message["pills"][number]["tone"] = "success";
+    if (pct > 90) {
+      consumptionTone = "danger";
+    } else if (pct > 70) {
+      consumptionTone = "warn";
+    }
+
+    return [
+      { label: `${fmtCOP(totalSpent)} gastado`, tone: spentTone },
+      { label: `${Math.round(pct)}% consumido`, tone: consumptionTone },
+    ].slice(0, 3);
   }
 
   async function sendMessage(text?: string) {
@@ -303,7 +353,7 @@ const reply = await callGemini(API_BASE, msg, systemPrompt);
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">◎</span>
-          Asistente Financiero IA
+          <span>Asistente Financiero IA</span>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           Consulta información financiera de tus proyectos en lenguaje natural.
@@ -350,9 +400,9 @@ const reply = await callGemini(API_BASE, msg, systemPrompt);
                 </div>
                 {msg.pills && msg.pills.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {msg.pills.map((p, i) => (
+                    {msg.pills.map((p) => (
                       <span
-                        key={i}
+                        key={`${p.label}-${p.tone}`}
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${pillClass[p.tone]}`}
                       >
                         {p.label}
@@ -376,9 +426,9 @@ const reply = await callGemini(API_BASE, msg, systemPrompt);
                 IA
               </div>
               <div className="px-4 py-3 bg-zinc-100 border border-zinc-200 rounded-2xl rounded-tl-sm flex gap-1.5 items-center">
-                {[0, 1, 2].map((i) => (
+                {DOT_KEYS.map((key, i) => (
                   <div
-                    key={i}
+                    key={key}
                     className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce"
                     style={{ animationDelay: `${i * 0.15}s` }}
                   />

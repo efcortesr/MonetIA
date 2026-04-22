@@ -30,6 +30,13 @@ export function ExpenseForm({
   const isEdit = mode === "edit";
   const [showForm, setShowForm] = useState(isEdit);
   const [isPending, startTransition] = useTransition();
+  let submitLabel = "Registrar gasto";
+  if (isEdit) {
+    submitLabel = "Guardar cambios";
+  }
+  if (isPending) {
+    submitLabel = isEdit ? "Guardando..." : "Registrando...";
+  }
 
   const handleSubmit = async (formData: FormData) => {
     formData.set("projectId", projectId);
@@ -154,9 +161,7 @@ export function ExpenseForm({
               disabled={isPending}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending
-                ? (isEdit ? "Guardando..." : "Registrando...")
-                : (isEdit ? "Guardar cambios" : "Registrar gasto")}
+              {submitLabel}
             </button>
           </div>
         </form>
