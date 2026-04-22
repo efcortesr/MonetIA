@@ -179,27 +179,47 @@ export default function ChatPage() {
     fetchContext();
   }, [fetchContext]);
 
-async function callGemini(
-  userMessage: string,
-): Promise<string> {
-  // Construimos el system prompt igual que antes
-
-  const response = await fetch(`${API_BASE}/chat/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question: userMessage,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error ?? "Error del servidor");
+  function getCookieValue(name: string): string {
+    if (typeof document === "undefined") return "";
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const [key, value] = cookie.trim().split("=");
+      if (key === name) return decodeURIComponent(value);
+    }
+    return "";
   }
 
-  const data = await response.json();
-  return data.answer;
-}
+  async function ensureCsrfCookie(apiBase: string): Promise<void> {
+    try {
+      await fetch(`${apiBase}/projects/`, { method: "GET" });
+    } catch {
+      // Ignorar errores, solo asegurar que se obtiene la cookie CSRF
+    }
+  }
+
+  async function callGemini(apiBase: string, userMessage: string, systemPrompt: string): Promise<string> {
+    await ensureCsrfCookie(API_BASE);
+    const csrfToken = getCookieValue("csrftoken");
+    const response = await fetch(`${API_BASE}/chat/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        question: userMessage,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+      throw new Error(err.error ?? "Error del servidor");
+    }
+
+    const data = await response.json();
+    return data.answer;
+  }
 
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
     const pills: Message["pills"] = [];
@@ -227,8 +247,9 @@ async function callGemini(
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-      const context = ctx ?? { projects: [], expenses: [], categories: [] };
-      const reply = await callGemini(msg);
+const context = ctx ?? { projects: [], expenses: [], categories: [] };
+const systemPrompt = buildSystemPrompt(context);
+const reply = await callGemini(API_BASE, msg, systemPrompt);
       const pills = extractPills(msg, context);
       const botMsg: Message = {
         id: Date.now() + 1,
