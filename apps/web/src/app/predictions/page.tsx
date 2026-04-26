@@ -211,7 +211,7 @@ export default async function PredictionsPage({
         <div>
           <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
             <span className="text-blue-600">◍</span>
-            AI Insights
+            <span>AI Insights</span>
           </div>
           <div className="mt-1 text-xs text-zinc-500">
             Predicciones y análisis de riesgo, basados en inteligencia artificial
@@ -250,7 +250,7 @@ export default async function PredictionsPage({
                 {" "}
                 <span className="font-semibold">{formatCurrency(insights.summary.predicted_total)}</span>
                 {" "}vs{" "}
-                <span className="font-semibold">{formatCurrency(insights.summary.budget)}</span> presupuestados.
+                <span className="font-semibold">{formatCurrency(insights.summary.budget)}</span>{" "}presupuestados.
                 {" "}
                 Consumo actual:{" "}
                 <span className="font-semibold">{insights.summary.consumed_pct.toFixed(1)}%</span>.
@@ -274,19 +274,19 @@ export default async function PredictionsPage({
             <div className="flex items-center gap-4 text-[11px] text-zinc-500">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-blue-600" />
-                Real
+                <span>Real</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Optimista
+                <span>Optimista</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
-                Esperado
+                <span>Esperado</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-rose-500" />
-                Pesimista
+                <span>Pesimista</span>
               </div>
             </div>
           }

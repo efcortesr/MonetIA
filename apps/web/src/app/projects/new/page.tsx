@@ -56,7 +56,7 @@ export default function NewProjectPage() {
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">+</span>
-          Nuevo Proyecto
+          <span>Nuevo Proyecto</span>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           Crea un nuevo proyecto para comenzar a registrar gastos y presupuestos.

@@ -70,7 +70,7 @@ export default async function ProjectDetailsPage({
       <div className="space-y-5">
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">▣</span>
-          Proyecto no encontrado
+          <span>Proyecto no encontrado</span>
         </div>
         <Link
           href="/projects"
@@ -126,7 +126,7 @@ export default async function ProjectDetailsPage({
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
             <span className="text-blue-600">▣</span>
-            {project.name}
+            <span>{project.name}</span>
           </div>
           {project.description && (
             <div className="mt-1 text-xs text-zinc-500">{project.description}</div>
@@ -161,7 +161,7 @@ export default async function ProjectDetailsPage({
               alertTone === "rose" ? "text-rose-700" : "text-amber-700"
             }`}
           >
-            <span className="font-semibold">Alerta de presupuesto</span> — {budgetAlert.message}
+            <span className="font-semibold">Alerta de presupuesto</span>{" "}- {budgetAlert.message}
           </div>
         </div>
       )}
@@ -171,7 +171,7 @@ export default async function ProjectDetailsPage({
         <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
           <span className="text-rose-600 font-bold text-lg">!</span>
           <div className="text-sm text-rose-700">
-            <span className="font-semibold">Presupuesto excedido</span> — el gasto
+            <span className="font-semibold">Presupuesto excedido</span>{" "}- el gasto
             total ({formatCOP(totalSpent)}) supera el presupuesto en{" "}
             <span className="font-semibold">{formatCOP(Math.abs(remaining))}</span>.
           </div>

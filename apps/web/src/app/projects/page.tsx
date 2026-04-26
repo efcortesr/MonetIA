@@ -44,7 +44,7 @@ export default async function ProjectsPage() {
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">▣</span>
-          Proyectos
+          <span>Proyectos</span>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           {result.error

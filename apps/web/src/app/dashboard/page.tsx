@@ -355,7 +355,7 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">▣</span>
-          Dashboard
+          <span>Dashboard</span>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           Vista general de todos los proyectos y métricas clave.
@@ -400,11 +400,11 @@ export default async function DashboardPage() {
               <div className="flex items-center gap-4 text-[11px] text-zinc-500">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-blue-600" />
-                  Real
+                  <span>Real</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-zinc-400" />
-                  Proyección
+                  <span>Proyección</span>
                 </div>
               </div>
             }

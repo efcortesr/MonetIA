@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -25,6 +25,7 @@ export function ExpenseForm({
   onSuccess,
   onCancel,
 }: Readonly<ExpenseFormProps>) {
+  const expenseFormId = useId();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = mode === "edit";
@@ -77,11 +78,12 @@ export function ExpenseForm({
         <form ref={formRef} action={handleSubmit} className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
+              <label htmlFor={`${expenseFormId}-description`} className="block text-sm font-medium text-zinc-700 mb-1">
                 Descripcion
               </label>
               <input
                 type="text"
+                id={`${expenseFormId}-description`}
                 name="description"
                 required
                 defaultValue={initialData?.description}
@@ -91,11 +93,12 @@ export function ExpenseForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
+              <label htmlFor={`${expenseFormId}-amount`} className="block text-sm font-medium text-zinc-700 mb-1">
                 Monto (COP)
               </label>
               <input
                 type="number"
+                id={`${expenseFormId}-amount`}
                 name="amount"
                 required
                 step="0.01"
@@ -107,10 +110,11 @@ export function ExpenseForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
+              <label htmlFor={`${expenseFormId}-category`} className="block text-sm font-medium text-zinc-700 mb-1">
                 Categoria
               </label>
               <select
+                id={`${expenseFormId}-category`}
                 name="category"
                 required
                 defaultValue={initialData?.category}
@@ -126,11 +130,12 @@ export function ExpenseForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">
+              <label htmlFor={`${expenseFormId}-date`} className="block text-sm font-medium text-zinc-700 mb-1">
                 Fecha
               </label>
               <input
                 type="date"
+                id={`${expenseFormId}-date`}
                 name="date"
                 required
                 defaultValue={initialData?.date}
@@ -233,6 +238,7 @@ interface RoleFormProps {
 }
 
 export function RoleForm({ projectId }: RoleFormProps) {
+  const roleFormId = useId();
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -265,11 +271,12 @@ export function RoleForm({ projectId }: RoleFormProps) {
             <form action={handleSubmit} className="space-y-4 w-full">
               <div className="flex flex-col gap-4 w-full">
                 <div className="min-w-0">
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  <label htmlFor={`${roleFormId}-name`} className="block text-sm font-medium text-zinc-700 mb-1">
                     Nombre del rol
                   </label>
                   <input
                     type="text"
+                    id={`${roleFormId}-name`}
                     name="name"
                     required
                     className="w-full min-w-0 px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -278,11 +285,12 @@ export function RoleForm({ projectId }: RoleFormProps) {
                 </div>
 
                 <div className="min-w-0">
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">
+                  <label htmlFor={`${roleFormId}-salary`} className="block text-sm font-medium text-zinc-700 mb-1">
                     Salario mensual (COP)
                   </label>
                   <input
                     type="number"
+                    id={`${roleFormId}-salary`}
                     name="salary"
                     required
                     step="0.01"
