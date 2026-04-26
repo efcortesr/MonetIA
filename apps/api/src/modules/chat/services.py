@@ -15,8 +15,10 @@ class FinancialChatService:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-        self.use_mock = os.environ.get("GEMINI_MOCK_MODE", "false").lower() == "true"
-        self.client = genai.Client(api_key=self.api_key) if self.api_key and not self.use_mock else None
+        self.use_mock = os.environ.get(
+            "GEMINI_MOCK_MODE", "false").lower() == "true"
+        self.client = genai.Client(
+            api_key=self.api_key) if self.api_key and not self.use_mock else None
 
     def _build_context(self, project_id=None) -> str:
         expenses_prefetch = Prefetch(
@@ -89,10 +91,10 @@ INSTRUCCIONES:
 
 PREGUNTA DEL USUARIO: {question}"""
 
-    def _mock_response(self, question: str, project_id=None) -> str:
+    def _mock_response(self, question: str) -> str:
         """Genera respuestas simuladas para modo desarrollo"""
         question_lower = question.lower()
-        
+
         if "gast" in question_lower or "presupuesto" in question_lower:
             return "Según los datos del sistema, tienes un presupuesto total definido con gastos registrados. El consumo está dentro de los límites aceptables."
         elif "riesgo" in question_lower or "alerta" in question_lower:
@@ -106,15 +108,16 @@ PREGUNTA DEL USUARIO: {question}"""
 
         if not question or not question.strip():
             return "Por favor, ingresa una pregunta válida."
-        
+
         # Usar modo mock si está activado
         if self.use_mock:
             logger.info(f"[MOCK MODE] Respondiendo a: {question}")
-            return self._mock_response(question, project_id)
-        
-        logger.info(f"[GEMINI MODE] API Key: {self.api_key[:20] if self.api_key else 'NONE'}")
+            return self._mock_response(question)
+
+        logger.info(
+            f"[GEMINI MODE] API Key: {self.api_key[:20] if self.api_key else 'NONE'}")
         logger.info(f"[GEMINI MODE] Client: {self.client}")
-        
+
         if not self.client:
             logger.error("Cliente Gemini no está configurado")
             return (
@@ -124,7 +127,8 @@ PREGUNTA DEL USUARIO: {question}"""
 
         try:
             prompt = self._build_prompt(question, project_id)
-            logger.info(f"[GEMINI] Prompt construido, enviando a {self.model}...")
+            logger.info(
+                f"[GEMINI] Prompt construido, enviando a {self.model}...")
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
@@ -132,10 +136,10 @@ PREGUNTA DEL USUARIO: {question}"""
             )
             text = (response.text or "").strip()
             logger.info(f"[GEMINI] Respuesta recibida: {text[:50]}...")
-            
+
             if not text:
                 return "No se pudo generar una respuesta"
-            
+
             return text  # ← AGREGA ESTA LÍNEA
 
         except Exception as exc:

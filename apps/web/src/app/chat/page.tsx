@@ -136,7 +136,8 @@ let csrfReady = false;
 
 function getCookieValue(name: string) {
   if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]*)`));
+  const regex = new RegExp(`(^|; )${name}=([^;]*)`);
+  const match = regex.exec(document.cookie);
   return match ? decodeURIComponent(match[2]) : null;
 }
 
@@ -222,48 +223,6 @@ export default function ChatPage() {
     fetchContext();
   }, [fetchContext]);
 
-  function getCookieValue(name: string): string {
-    if (typeof document === "undefined") return "";
-    const cookies = document.cookie.split(";");
-    for (const cookie of cookies) {
-      const [key, value] = cookie.trim().split("=");
-      if (key === name) return decodeURIComponent(value);
-    }
-    return "";
-  }
-
-  async function ensureCsrfCookie(apiBase: string): Promise<void> {
-    try {
-      await fetch(`${apiBase}/projects/`, { method: "GET" });
-    } catch {
-      // Ignorar errores, solo asegurar que se obtiene la cookie CSRF
-    }
-  }
-
-  async function callGemini(apiBase: string, userMessage: string, systemPrompt: string): Promise<string> {
-    await ensureCsrfCookie(API_BASE);
-    const csrfToken = getCookieValue("csrftoken");
-    const response = await fetch(`${API_BASE}/chat/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        question: userMessage,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-      throw new Error(err.error ?? "Error del servidor");
-    }
-
-    const data = await response.json();
-    return data.answer;
-  }
-
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
     const totalSpent = context.projects.reduce((s, p) => s + Number(p.total_spent), 0);
     const totalBudget = context.projects.reduce((s, p) => s + Number(p.budget), 0);
@@ -297,9 +256,9 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-const context = ctx ?? { projects: [], expenses: [], categories: [] };
-const systemPrompt = buildSystemPrompt(context);
-const reply = await callGemini(API_BASE, msg, systemPrompt);
+      const context = ctx ?? { projects: [], expenses: [], categories: [] };
+      buildSystemPrompt(context);
+      const reply = await callGemini(API_BASE, msg);
       const pills = extractPills(msg, context);
       const botMsg: Message = {
         id: Date.now() + 1,
