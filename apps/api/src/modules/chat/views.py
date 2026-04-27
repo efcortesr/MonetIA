@@ -1,13 +1,12 @@
 import json
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .services import FinancialChatService
 
 
-@ensure_csrf_cookie
-@csrf_protect
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def chat_view(request):
     if request.method == "GET":

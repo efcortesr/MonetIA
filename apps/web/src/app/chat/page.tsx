@@ -132,32 +132,11 @@ const SUGGESTIONS = [
 
 const DOT_KEYS = ["dot-0", "dot-1", "dot-2"];
 
-let csrfReady = false;
-
-function getCookieValue(name: string) {
-  if (typeof document === "undefined") return null;
-  const regex = new RegExp(`(^|; )${name}=([^;]*)`);
-  const match = regex.exec(document.cookie);
-  return match ? decodeURIComponent(match[2]) : null;
-}
-
-async function ensureCsrfCookie(apiBase: string) {
-  if (csrfReady) return;
-  await fetch(`${apiBase}/chat/`, {
-    method: "GET",
-    credentials: "include",
-  });
-  csrfReady = true;
-}
-
 async function callGemini(apiBase: string, userMessage: string): Promise<string> {
-  await ensureCsrfCookie(apiBase);
-  const csrfToken = getCookieValue("csrftoken");
   const response = await fetch(`${apiBase}/chat/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken ?? "",
     },
     credentials: "include",
     body: JSON.stringify({
