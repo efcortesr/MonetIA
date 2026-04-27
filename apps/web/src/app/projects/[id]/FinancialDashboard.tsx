@@ -85,6 +85,11 @@ export default function FinancialDashboard({
       maximumFractionDigits: 0,
     }).format(value);
 
+  const formatPercentage = (value: number, total: number) => {
+    if (!total || total === 0) return "0%";
+    return `${((value / total) * 100).toFixed(1)}%`;
+  };
+
   if (!data && loading) {
     return (
       <Card className="min-h-[400px] flex items-center justify-center border-dashed border-zinc-200">
@@ -241,7 +246,7 @@ export default function FinancialDashboard({
                   <Cell fill="#ef4444" />
                   <Cell fill="#10b981" />
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.budget)})`} />
                 <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
@@ -266,7 +271,7 @@ export default function FinancialDashboard({
                       <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.filtered_spent)})`} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -284,7 +289,7 @@ export default function FinancialDashboard({
               <BarChart data={charts.by_category.slice(0, 5)} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" width={80} style={{ fontSize: "10px" }} />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{ fill: "transparent" }} />
+                <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.filtered_spent)})`} cursor={{ fill: "transparent" }} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {charts.by_category.slice(0, 5).map((entry, index) => (
                     <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
@@ -311,7 +316,7 @@ export default function FinancialDashboard({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="date" style={{ fontSize: "10px" }} tickMargin={10} />
                 <YAxis tickFormatter={(value) => `$${value / 1000}k`} style={{ fontSize: "10px" }} />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.budget)} del pto)`} />
                 <Area
                   type="monotone"
                   dataKey="value"
@@ -366,8 +371,13 @@ export default function FinancialDashboard({
                         {expenseCategory?.name || `Categoria ${expense.category}`}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-zinc-900">
-                      {formatCurrency(Number(expense.amount))}
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-zinc-900">{formatCurrency(Number(expense.amount))}</span>
+                        <span className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                          {formatPercentage(Number(expense.amount), summary.total_spent)} del total
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <button
