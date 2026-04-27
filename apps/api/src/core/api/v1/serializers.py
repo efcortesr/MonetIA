@@ -77,6 +77,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "status",
         )
 
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "El monto del gasto debe ser mayor que 0."
+            )
+        return value
+
 
 class AlertSerializer(serializers.ModelSerializer):
     class Meta:
