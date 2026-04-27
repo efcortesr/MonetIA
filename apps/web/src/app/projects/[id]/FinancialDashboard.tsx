@@ -27,7 +27,16 @@ import {
   type ApiFinancialDashboard,
 } from "@/lib/projects-api";
 
-const COLORS = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#16a34a", "#ca8a04"];
+const COLORS = [
+  "#3b82f6", // Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#ef4444", // Red
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#14b8a6", // Teal
+  "#f97316", // Orange
+];
 
 type StatCardProps = {
   label: string;
@@ -229,8 +238,8 @@ export default function FinancialDashboard({
                   dataKey="value"
                   stroke="none"
                 >
-                  <Cell fill="#2563eb" />
-                  <Cell fill="#f1f5f9" />
+                  <Cell fill="#ef4444" />
+                  <Cell fill="#10b981" />
                 </Pie>
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend verticalAlign="bottom" height={36} />
@@ -254,7 +263,7 @@ export default function FinancialDashboard({
                     stroke="none"
                   >
                     {charts.by_category.map((entry, index) => (
-                      <Cell key={entry.name} fill={entry.color || COLORS[index % COLORS.length]} />
+                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -278,7 +287,7 @@ export default function FinancialDashboard({
                 <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{ fill: "transparent" }} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {charts.by_category.slice(0, 5).map((entry, index) => (
-                    <Cell key={entry.name} fill={entry.color || COLORS[index % COLORS.length]} />
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>

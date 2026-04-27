@@ -132,7 +132,7 @@ PREGUNTA DEL USUARIO: {question}"""
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
-                config={"max_output_tokens": 200},
+                config={"max_output_tokens": 1000},
             )
             text = (response.text or "").strip()
             logger.info(f"[GEMINI] Respuesta recibida: {text[:50]}...")
