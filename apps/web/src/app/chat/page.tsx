@@ -6,12 +6,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 
+type Pill = { label: string; tone: "info" | "success" | "warn" | "danger" | "neutral" };
+
 type Message = {
   id: number;
   role: "user" | "bot";
   text: string;
   time: string;
-  pills?: { label: string; tone: "info" | "success" | "warn" | "danger" | "neutral" }[];
+  pills?: Pill[];
 };
 
 type Project = {
@@ -202,7 +204,7 @@ export default function ChatPage() {
     fetchContext();
   }, [fetchContext]);
 
-  function extractPills(text: string, context: FinancialContext): Message["pills"] {
+  function extractPills(text: string, context: FinancialContext): Pill[] {
     const totalSpent = context.projects.reduce((s, p) => s + Number(p.total_spent), 0);
     const totalBudget = context.projects.reduce((s, p) => s + Number(p.budget), 0);
     const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
@@ -211,8 +213,8 @@ export default function ChatPage() {
       return [];
     }
 
-    const spentTone = pct > 80 ? "danger" : "info";
-    let consumptionTone: Message["pills"][number]["tone"] = "success";
+    const spentTone: Pill["tone"] = pct > 80 ? "danger" : "info";
+    let consumptionTone: Pill["tone"] = "success";
     if (pct > 90) {
       consumptionTone = "danger";
     } else if (pct > 70) {
