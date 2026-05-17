@@ -46,7 +46,9 @@ export type ApiRecommendation = {
   title: string;
   body: string;
   priority: "Alta" | "Media" | "Baja";
+  status?: string;
   project?: string;
+  project_id?: string;
 };
 
 export type ApiAlert = {
@@ -206,6 +208,18 @@ export async function getGlobalRecommendations() {
     cache: "no-store",
   });
   return data.results || [];
+}
+
+export async function approveRecommendation(id: string | number) {
+  return apiFetch<{ status: string; message: string }>(`/recommendations/${id}/approve/`, {
+    method: "POST",
+  });
+}
+
+export async function discardRecommendation(id: string | number) {
+  return apiFetch<{ status: string; message: string }>(`/recommendations/${id}/discard/`, {
+    method: "POST",
+  });
 }
 
 export async function getProjectRecommendations(projectId: string | number) {

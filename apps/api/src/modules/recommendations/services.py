@@ -157,7 +157,7 @@ class GeminiRecommendationService:
 
     def _save_and_format_recommendations(self, project, results_list):
         """Helper to clear old recommendations, save new ones, and format output."""
-        Recommendation.objects.filter(project=project).delete()
+        Recommendation.objects.filter(project=project, status="pending").delete()
 
         saved_recs = []
         for item in results_list:
@@ -169,7 +169,8 @@ class GeminiRecommendationService:
                 project=project,
                 title=item.get("title", "Sin título"),
                 body=item.get("body", ""),
-                priority=priority
+                priority=priority,
+                status="pending"
             )
 
             saved_recs.append({
@@ -177,14 +178,16 @@ class GeminiRecommendationService:
                 "title": rec_obj.title,
                 "body": rec_obj.body,
                 "priority": rec_obj.priority,
-                "project": project.name
+                "status": rec_obj.status,
+                "project": project.name,
+                "project_id": str(project.id)
             })
 
         return {"results": saved_recs}
 
     def get_existing_recommendations(self, project):
         """Fetches recommendations already stored in the database for a given project."""
-        recs = Recommendation.objects.filter(project=project).order_by('created_at')
+        recs = Recommendation.objects.filter(project=project).exclude(status="discarded").order_by('created_at')
         results = []
         for rec_obj in recs:
             results.append({
@@ -192,7 +195,9 @@ class GeminiRecommendationService:
                 "title": rec_obj.title,
                 "body": rec_obj.body,
                 "priority": rec_obj.priority,
-                "project": project.name
+                "status": rec_obj.status,
+                "project": project.name,
+                "project_id": str(project.id)
             })
         return {"results": results}
 

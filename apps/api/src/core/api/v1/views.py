@@ -654,6 +654,28 @@ class RecommendationsViewSet(viewsets.ViewSet):
 
         return Response({"results": all_results})
 
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        from core.models import Recommendation
+        try:
+            rec = Recommendation.objects.get(pk=pk)
+            rec.status = "approved"
+            rec.save()
+            return Response({"status": "approved", "message": "Recomendación aprobada correctamente."})
+        except Recommendation.DoesNotExist:
+            return Response({"error": "Recomendación no encontrada"}, status=404)
+
+    @action(detail=True, methods=["post"])
+    def discard(self, request, pk=None):
+        from core.models import Recommendation
+        try:
+            rec = Recommendation.objects.get(pk=pk)
+            rec.status = "discarded"
+            rec.save()
+            return Response({"status": "discarded", "message": "Recomendación descartada correctamente."})
+        except Recommendation.DoesNotExist:
+            return Response({"error": "Recomendación no encontrada"}, status=404)
+
 
 class PredictionsViewSet(viewsets.ViewSet):
     def list(self, request):
