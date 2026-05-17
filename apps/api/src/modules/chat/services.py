@@ -20,13 +20,16 @@ class FinancialChatService:
         self.client = genai.Client(
             api_key=self.api_key) if self.api_key and not self.use_mock else None
 
-    def _build_context(self, project_id=None) -> str:
+    def _build_context(self, project_id=None, user=None) -> str:
         expenses_prefetch = Prefetch(
             "expenses",
             queryset=Expense.objects.select_related("category"),
             to_attr="prefetched_expenses",
         )
         base_qs = Project.objects.prefetch_related(expenses_prefetch, "roles")
+        if user and user.is_authenticated:
+            base_qs = base_qs.filter(owner=user)
+        
         qs = base_qs.filter(pk=project_id) if project_id else base_qs.all()
 
         if not qs.exists():
@@ -74,8 +77,8 @@ class FinancialChatService:
 
         return "\n".join(lines)
 
-    def _build_prompt(self, question: str, project_id=None) -> str:
-        context = self._build_context(project_id)
+    def _build_prompt(self, question: str, project_id=None, user=None) -> str:
+        context = self._build_context(project_id, user)
         return f"""Eres un asistente financiero experto integrado en MonetIA.
 
 DATOS ACTUALES DEL SISTEMA:
@@ -104,7 +107,7 @@ PREGUNTA DEL USUARIO: {question}"""
         else:
             return "He procesado tu consulta. ¿Hay algo más específico sobre tu información financiera que desees conocer?"
 
-    def answer(self, question: str, project_id=None) -> str:
+    def answer(self, question: str, project_id=None, user=None) -> str:
 
         if not question or not question.strip():
             return "Por favor, ingresa una pregunta válida."
@@ -126,7 +129,7 @@ PREGUNTA DEL USUARIO: {question}"""
             )
 
         try:
-            prompt = self._build_prompt(question, project_id)
+            prompt = self._build_prompt(question, project_id, user)
             logger.info(
                 f"[GEMINI] Prompt construido, enviando a {self.model}...")
             response = self.client.models.generate_content(

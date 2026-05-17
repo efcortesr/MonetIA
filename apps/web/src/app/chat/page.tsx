@@ -234,8 +234,8 @@ export default function ChatPage() {
       return [];
     }
 
-    const spentTone = pct > 80 ? "danger" : "info";
-    let consumptionTone: Message["pills"][number]["tone"] = "success";
+    const spentTone: "info" | "success" | "warn" | "danger" | "neutral" = pct > 80 ? "danger" : "info";
+    let consumptionTone: "info" | "success" | "warn" | "danger" | "neutral" = "success";
     if (pct > 90) {
       consumptionTone = "danger";
     } else if (pct > 70) {
