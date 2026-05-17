@@ -30,7 +30,16 @@ import {
   type ApiFinancialDashboard,
 } from "@/lib/projects-api";
 
-const COLORS = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#16a34a", "#ca8a04"];
+const COLORS = [
+  "#3b82f6", // Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#ef4444", // Red
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#14b8a6", // Teal
+  "#f97316", // Orange
+];
 
 type StatCardProps = {
   label: string;
@@ -89,6 +98,10 @@ export default function FinancialDashboard({
     }).format(value);
 
   // First load: show rich skeleton matching the real layout
+  const formatPercentage = (value: number, total: number) => {
+    if (!total || total === 0) return "0%";
+    return `${((value / total) * 100).toFixed(1)}%`;
+  };
   if (!data && loading) {
     return <DashboardSkeleton />;
   }
@@ -96,6 +109,17 @@ export default function FinancialDashboard({
   if (!data) return null;
 
   const { summary, charts, expenses } = data;
+  const periodTone = summary.total_execution_percentage > 90 ? "danger" : "info";
+  const balanceSub = summary.total_over_budget > 0
+    ? "Excedido"
+    : `${Math.round(100 - summary.total_execution_percentage)}% disponible`;
+  const balanceTone = summary.total_over_budget > 0 ? "danger" : "success";
+  let riskTone: "danger" | "warning" | "success" = "success";
+  if (summary.total_execution_percentage > 90) {
+    riskTone = "danger";
+  } else if (summary.total_execution_percentage >= 70) {
+    riskTone = "warning";
+  }
 
   return (
     <div className="space-y-6">
@@ -195,29 +219,19 @@ export default function FinancialDashboard({
           label="Gasto en Periodo"
           value={formatCurrency(summary.filtered_spent)}
           sub={`Total proyecto: ${formatCurrency(summary.total_spent)}`}
-          tone={summary.total_execution_percentage > 90 ? "danger" : "info"}
+          tone={periodTone}
         />
         <StatCard
           label="Saldo Restante"
           value={formatCurrency(summary.total_remaining)}
-          sub={
-            summary.total_over_budget > 0
-              ? "Excedido"
-              : `${Math.round(100 - summary.total_execution_percentage)}% disponible`
-          }
-          tone={summary.total_over_budget > 0 ? "danger" : "success"}
+          sub={balanceSub}
+          tone={balanceTone}
         />
         <StatCard
           label="Nivel de Riesgo"
           value={summary.total_deviation_level}
           sub={`Desviacion: ${formatCurrency(summary.total_budget_deviation)}`}
-          tone={
-            summary.total_execution_percentage > 90
-              ? "danger"
-              : summary.total_execution_percentage >= 70
-                ? "warning"
-                : "success"
-          }
+          tone={riskTone}
           isBadge
         />
       </div>
@@ -241,10 +255,10 @@ export default function FinancialDashboard({
                   dataKey="value"
                   stroke="none"
                 >
-                  <Cell fill="#2563eb" />
-                  <Cell fill="#f1f5f9" />
+                  <Cell fill="#ef4444" />
+                  <Cell fill="#10b981" />
                 </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.budget)})`} />
                 <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
@@ -266,10 +280,10 @@ export default function FinancialDashboard({
                     stroke="none"
                   >
                     {charts.by_category.map((entry, index) => (
-                      <Cell key={entry.name} fill={entry.color || COLORS[index % COLORS.length]} />
+                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.filtered_spent)})`} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -287,10 +301,10 @@ export default function FinancialDashboard({
               <BarChart data={charts.by_category.slice(0, 5)} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" width={80} style={{ fontSize: "10px" }} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} cursor={{ fill: "transparent" }} />
+                <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.filtered_spent)})`} cursor={{ fill: "transparent" }} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {charts.by_category.slice(0, 5).map((entry, index) => (
-                    <Cell key={entry.name} fill={entry.color || COLORS[index % COLORS.length]} />
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -314,7 +328,7 @@ export default function FinancialDashboard({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="date" style={{ fontSize: "10px" }} tickMargin={10} />
                 <YAxis tickFormatter={(value) => `$${value / 1000}k`} style={{ fontSize: "10px" }} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.budget)} del pto)`} />
                 <Area
                   type="monotone"
                   dataKey="value"
@@ -374,8 +388,13 @@ export default function FinancialDashboard({
                         {expenseCategory?.name || `Categoria ${expense.category}`}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-zinc-900">
-                      {formatCurrency(Number(expense.amount))}
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-zinc-900">{formatCurrency(Number(expense.amount))}</span>
+                        <span className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                          {formatPercentage(Number(expense.amount), summary.total_spent)} del total
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <button

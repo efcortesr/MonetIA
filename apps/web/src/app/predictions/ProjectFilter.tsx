@@ -10,10 +10,10 @@ type ProjectOption = {
 export default function ProjectFilter({
   projects,
   selectedProjectId,
-}: {
+}: Readonly<{
   projects: ProjectOption[];
   selectedProjectId: string;
-}) {
+}>) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -25,15 +25,22 @@ export default function ProjectFilter({
       params.delete("project_id");
     }
     const query = params.toString();
-    router.push(`/predictions${query ? `?${query}` : ""}`);
+    const nextPath = query ? `/predictions?${query}` : "/predictions";
+    router.push(nextPath);
   };
+
+  const selectId = "prediction-project";
 
   return (
     <div>
-      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">
+      <label
+        htmlFor={selectId}
+        className="block text-[10px] font-bold text-zinc-500 uppercase mb-1"
+      >
         Proyecto
       </label>
       <select
+        id={selectId}
         name="project_id"
         value={selectedProjectId}
         onChange={(event) => handleChange(event.target.value)}

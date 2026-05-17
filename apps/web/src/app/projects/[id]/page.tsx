@@ -70,7 +70,7 @@ export default async function ProjectDetailsPage({
       <div className="space-y-5">
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">▣</span>
-          Proyecto no encontrado
+          <span>Proyecto no encontrado</span>
         </div>
         <Link
           href="/projects"
@@ -94,14 +94,30 @@ export default async function ProjectDetailsPage({
 
   const budgetAlert = alerts.find((alert) => alert.type === "budget_threshold");
   const alertTone = budgetAlert?.severity === "Crítica" ? "rose" : "amber";
+  let spendTone: "neutral" | "warning" | "danger" = "neutral";
+  if (consumedPct > 90) {
+    spendTone = "danger";
+  } else if (consumedPct > 70) {
+    spendTone = "warning";
+  }
+  const remainingSub = isOverBudget
+    ? "⚠ Sobrepasado"
+    : `${Math.round(100 - consumedPct)}% disponible`;
+  let remainingTone: "danger" | "warning" | "success" = "success";
+  if (isOverBudget) {
+    remainingTone = "danger";
+  } else if (remaining < budget * 0.15) {
+    remainingTone = "warning";
+  }
   // Time calculation 
   const timelinePct = (() => {
     const startObj = new Date(project.start_date).getTime();
     const endObj = new Date(project.end_date).getTime();
     if (endObj <= startObj) return 0;
-    const nowTs = new Date().getTime();
+    const nowTs = Date.now();
     return Math.min(100, Math.max(0, ((nowTs - startObj) / (endObj - startObj)) * 100));
   })();
+  const consumptionTone = consumedPct > timelinePct + 15 ? "danger" : "neutral";
 
   return (
     <div className="space-y-5">
@@ -110,7 +126,7 @@ export default async function ProjectDetailsPage({
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
             <span className="text-blue-600">▣</span>
-            {project.name}
+            <span>{project.name}</span>
           </div>
           {project.description && (
             <div className="mt-1 text-xs text-zinc-500">{project.description}</div>
@@ -145,7 +161,7 @@ export default async function ProjectDetailsPage({
               alertTone === "rose" ? "text-rose-700" : "text-amber-700"
             }`}
           >
-            <span className="font-semibold">Alerta de presupuesto</span> — {budgetAlert.message}
+            <span className="font-semibold">Alerta de presupuesto</span>{" "}- {budgetAlert.message}
           </div>
         </div>
       )}
@@ -155,7 +171,7 @@ export default async function ProjectDetailsPage({
         <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
           <span className="text-rose-600 font-bold text-lg">!</span>
           <div className="text-sm text-rose-700">
-            <span className="font-semibold">Presupuesto excedido</span> — el gasto
+            <span className="font-semibold">Presupuesto excedido</span>{" "}- el gasto
             total ({formatCOP(totalSpent)}) supera el presupuesto en{" "}
             <span className="font-semibold">{formatCOP(Math.abs(remaining))}</span>.
           </div>
@@ -174,19 +190,19 @@ export default async function ProjectDetailsPage({
           title="Total gastado"
           value={formatCOP(totalSpent)}
           sub={`Gastos ${formatCOP(totalExpenses)} + Roles ${formatCOP(totalRolesCost)}`}
-          tone={consumedPct > 90 ? "danger" : consumedPct > 70 ? "warning" : "neutral"}
+          tone={spendTone}
         />
         <Kpi
           title="Presupuesto restante"
           value={formatCOP(remaining)}
-          sub={isOverBudget ? "⚠ Sobrepasado" : `${Math.round(100 - consumedPct)}% disponible`}
-          tone={isOverBudget ? "danger" : remaining < budget * 0.15 ? "warning" : "success"}
+          sub={remainingSub}
+          tone={remainingTone}
         />
         <Kpi
           title="Consumo"
           value={`${Math.round(consumedPct)}%`}
           sub={`${Math.round(timelinePct)}% del tiempo transcurrido`}
-          tone={consumedPct > timelinePct + 15 ? "danger" : "neutral"}
+          tone={consumptionTone}
         />
       </div>
 

@@ -33,7 +33,7 @@ export function Topbar() {
             className="inline-flex h-9 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <span className="text-lg leading-none">+</span>
-            Nuevo Proyecto
+            <span>Nuevo Proyecto</span>
           </Link>
         </div>
       </div>

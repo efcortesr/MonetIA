@@ -1,9 +1,12 @@
 import os
 import logging
+import traceback
 from decimal import Decimal
 from google import genai
 
-from core.models import Project
+from django.db.models import Prefetch
+
+from core.models import Expense, Project
 
 logger = logging.getLogger(__name__)
 
@@ -11,32 +14,36 @@ logger = logging.getLogger(__name__)
 class FinancialChatService:
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-        self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+        self.model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        self.use_mock = os.environ.get(
+            "GEMINI_MOCK_MODE", "false").lower() == "true"
+        self.client = genai.Client(
+            api_key=self.api_key) if self.api_key and not self.use_mock else None
 
     def _build_context(self, project_id=None) -> str:
-        qs = ( 
-            Project.objects
-            .prefetch_related("expenses__category", "roles")
-            .filter(pk=project_id) if project_id
-            else Project.objects.prefetch_related("expenses__category", "roles").all()
+        expenses_prefetch = Prefetch(
+            "expenses",
+            queryset=Expense.objects.select_related("category"),
+            to_attr="prefetched_expenses",
         )
+        base_qs = Project.objects.prefetch_related(expenses_prefetch, "roles")
+        qs = base_qs.filter(pk=project_id) if project_id else base_qs.all()
 
         if not qs.exists():
             return "No hay proyectos registrados en el sistema."
 
         total_budget = Decimal("0")
-        total_spent  = Decimal("0")
+        total_spent = Decimal("0")
         lines = []
 
         for p in qs:
-            budget    = p.budget
-            spent     = p.total_spent
+            budget = p.budget
+            spent = p.total_spent
             remaining = p.remaining_budget
-            pct       = (spent / budget * 100) if budget and budget > 0 else Decimal("0")
+            pct = (spent / budget * 100) if budget and budget > 0 else Decimal("0")
 
             total_budget += budget
-            total_spent  += spent
+            total_spent += spent
 
             lines.append(
                 f"- {p.name} (ID:{p.id}): "
@@ -48,16 +55,19 @@ class FinancialChatService:
 
             # Gastos por categoría dentro del proyecto
             cat_totals: dict[str, Decimal] = {}
-            for exp in p.expenses.all():
+            expenses = getattr(p, "prefetched_expenses", [])
+            for exp in expenses:
                 name = exp.category.name
-                cat_totals[name] = cat_totals.get(name, Decimal("0")) + exp.amount
+                cat_totals[name] = cat_totals.get(
+                    name, Decimal("0")) + exp.amount
 
             for cat_name, cat_total in sorted(
                 cat_totals.items(), key=lambda x: x[1], reverse=True
             ):
                 lines.append(f"    • {cat_name}: COP {cat_total:,.0f}")
 
-        lines.append(f"\nRESUMEN GLOBAL:")
+        lines.append("")
+        lines.append("RESUMEN GLOBAL:")
         lines.append(f"- Presupuesto total: COP {total_budget:,.0f}")
         lines.append(f"- Gasto total: COP {total_spent:,.0f}")
         lines.append(f"- Saldo total: COP {total_budget - total_spent:,.0f}")
@@ -81,12 +91,35 @@ INSTRUCCIONES:
 
 PREGUNTA DEL USUARIO: {question}"""
 
+    def _mock_response(self, question: str) -> str:
+        """Genera respuestas simuladas para modo desarrollo"""
+        question_lower = question.lower()
+
+        if "gast" in question_lower or "presupuesto" in question_lower:
+            return "Según los datos del sistema, tienes un presupuesto total definido con gastos registrados. El consumo está dentro de los límites aceptables."
+        elif "riesgo" in question_lower or "alerta" in question_lower:
+            return "Actualmente no hay alertas críticas. Todos los proyectos están dentro de sus límites de presupuesto."
+        elif "proyecto" in question_lower:
+            return "Tienes varios proyectos activos siendo ejecutados dentro de los parámetros presupuestales definidos."
+        else:
+            return "He procesado tu consulta. ¿Hay algo más específico sobre tu información financiera que desees conocer?"
+
     def answer(self, question: str, project_id=None) -> str:
-        
+
         if not question or not question.strip():
             return "Por favor, ingresa una pregunta válida."
-        
+
+        # Usar modo mock si está activado
+        if self.use_mock:
+            logger.info(f"[MOCK MODE] Respondiendo a: {question}")
+            return self._mock_response(question)
+
+        logger.info(
+            f"[GEMINI MODE] API Key: {self.api_key[:20] if self.api_key else 'NONE'}")
+        logger.info(f"[GEMINI MODE] Client: {self.client}")
+
         if not self.client:
+            logger.error("Cliente Gemini no está configurado")
             return (
                 "El motor de IA no está configurado. "
                 "Agrega GEMINI_API_KEY al archivo .env del backend."
@@ -94,18 +127,24 @@ PREGUNTA DEL USUARIO: {question}"""
 
         try:
             prompt = self._build_prompt(question, project_id)
+            logger.info(
+                f"[GEMINI] Prompt construido, enviando a {self.model}...")
             response = self.client.models.generate_content(
                 model=self.model,
                 contents=prompt,
-                config={"max_output_tokens": 200},
+                config={"max_output_tokens": 1000},
             )
             text = (response.text or "").strip()
-            
+            logger.info(f"[GEMINI] Respuesta recibida: {text[:50]}...")
+
             if not text:
                 return "No se pudo generar una respuesta"
 
+            return text  # ← AGREGA ESTA LÍNEA
+
         except Exception as exc:
-            logger.error("Error Gemini chat: %s", exc)
+            logger.error(f"Error Gemini chat: {exc}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return (
                 "Ocurrió un error al procesar tu consulta. "
                 "Intenta de nuevo en unos momentos."

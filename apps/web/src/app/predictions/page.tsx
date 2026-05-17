@@ -11,9 +11,9 @@ import ProjectFilter from "@/app/predictions/ProjectFilter";
 
 function ProjectionChart({
   data,
-}: {
+}: Readonly<{
   data: ApiAiProjection | null;
-}) {
+}>) {
   const w = 980;
   const h = 260;
   const padX = 56;
@@ -161,6 +161,18 @@ function summaryTone(summary: ApiAiInsightSummary | null) {
   return "info";
 }
 
+function summaryCardClass(tone: string) {
+  if (tone === "danger") return "border-rose-200 bg-rose-50";
+  if (tone === "warning") return "border-amber-200 bg-amber-50";
+  return "border-blue-200 bg-blue-50";
+}
+
+function summaryIconClass(tone: string) {
+  if (tone === "danger") return "bg-rose-100 text-rose-600";
+  if (tone === "warning") return "bg-amber-100 text-amber-600";
+  return "bg-blue-100 text-blue-600";
+}
+
 function riskCardClasses(tone: ApiAiRiskFactor["tone"]) {
   if (tone === "danger") return "border-rose-200 bg-rose-50";
   if (tone === "warning") return "border-amber-200 bg-amber-50";
@@ -171,9 +183,9 @@ function riskCardClasses(tone: ApiAiRiskFactor["tone"]) {
 
 export default async function PredictionsPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams?: Promise<{ project_id?: string }>;
-}) {
+}>) {
   const params = searchParams ? await searchParams : undefined;
   const selectedProjectId = params?.project_id ?? "";
 
@@ -190,6 +202,8 @@ export default async function PredictionsPage({
   const projectLabel = selectedProjectId
     ? projects.find((project) => String(project.id) === String(selectedProjectId))?.name
     : null;
+  const summaryClassName = summaryCardClass(tone);
+  const iconClassName = summaryIconClass(tone);
 
   return (
     <div className="space-y-5">
@@ -197,7 +211,7 @@ export default async function PredictionsPage({
         <div>
           <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
             <span className="text-blue-600">◍</span>
-            AI Insights
+            <span>AI Insights</span>
           </div>
           <div className="mt-1 text-xs text-zinc-500">
             Predicciones y análisis de riesgo, basados en inteligencia artificial
@@ -213,23 +227,11 @@ export default async function PredictionsPage({
 
       {insights.summary ? (
         <div
-          className={`rounded-2xl border p-4 ${
-            tone === "danger" 
-              ? "border-rose-200 bg-rose-50"
-              : tone === "warning"
-                ? "border-amber-200 bg-amber-50"
-                : "border-blue-200 bg-blue-50"
-          }`}
+          className={`rounded-2xl border p-4 ${summaryClassName}`}
         >
           <div className="flex items-start gap-3">
             <div
-              className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${
-                tone === "danger"
-                  ? "bg-rose-100 text-rose-600"
-                  : tone === "warning"
-                    ? "bg-amber-100 text-amber-600"
-                    : "bg-blue-100 text-blue-600"
-              }`}
+              className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${iconClassName}`}
             >
               <span className="text-sm font-bold">!</span>
             </div>
@@ -245,9 +247,13 @@ export default async function PredictionsPage({
               </div>
               <div className="mt-1 text-[11px] leading-4 text-zinc-600">
                 La IA proyecta un costo final de
-                <span className="font-semibold"> {formatCurrency(insights.summary.predicted_total)}</span> vs
-                <span className="font-semibold"> {formatCurrency(insights.summary.budget)}</span> presupuestados.
-                Consumo actual: <span className="font-semibold">{insights.summary.consumed_pct.toFixed(1)}%</span>.
+                {" "}
+                <span className="font-semibold">{formatCurrency(insights.summary.predicted_total)}</span>
+                {" "}vs{" "}
+                <span className="font-semibold">{formatCurrency(insights.summary.budget)}</span>{" "}presupuestados.
+                {" "}
+                Consumo actual:{" "}
+                <span className="font-semibold">{insights.summary.consumed_pct.toFixed(1)}%</span>.
               </div>
               <div className="mt-2 text-[11px] text-zinc-500">
                 Confianza del modelo: {Math.round(insights.summary.confidence)}%
@@ -268,19 +274,19 @@ export default async function PredictionsPage({
             <div className="flex items-center gap-4 text-[11px] text-zinc-500">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-blue-600" />
-                Real
+                <span>Real</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Optimista
+                <span>Optimista</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
-                Esperado
+                <span>Esperado</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-rose-500" />
-                Pesimista
+                <span>Pesimista</span>
               </div>
             </div>
           }

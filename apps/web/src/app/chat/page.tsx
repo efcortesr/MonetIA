@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+
 
 type Message = {
   id: number;
@@ -51,74 +53,7 @@ function getTime() {
   return new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 }
 
-function buildSystemPrompt(ctx: FinancialContext): string {
-  const totalBudget = ctx.projects.reduce((s, p) => s + Number(p.budget), 0);
-  const totalSpent = ctx.projects.reduce((s, p) => s + Number(p.total_spent), 0);
-  const totalRemaining = ctx.projects.reduce((s, p) => s + Number(p.remaining_budget), 0);
 
-  const projectsSummary = ctx.projects
-    .map((p) => {
-      const pct =
-        Number(p.budget) > 0
-          ? ((Number(p.total_spent) / Number(p.budget)) * 100).toFixed(1)
-          : "0";
-      return `- ${p.name} (ID:${p.id}): presupuesto=${fmtCOP(p.budget)}, gastado=${fmtCOP(p.total_spent)}, restante=${fmtCOP(p.remaining_budget)}, consumo=${pct}%, estado=${p.status}`;
-    })
-    .join("\n");
-
-  // Solo los últimos 50 gastos ordenados por fecha
-  const lastExpenses = [...ctx.expenses]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 50);
-
-  const catTotals: Record<string, number> = {};
-  lastExpenses.forEach((e) => {
-    const cat = ctx.categories.find((c) => c.id === e.category);
-    const name = cat ? cat.name : "Sin categoría";
-    catTotals[name] = (catTotals[name] || 0) + Number(e.amount);
-  });
-
-  const catSummary = Object.entries(catTotals)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, amt]) => `  - ${name}: ${fmtCOP(amt)}`)
-    .join("\n");
-
-  const expensesSummary = lastExpenses
-    .map((e) => {
-      const cat = ctx.categories.find((c) => c.id === e.category);
-      return `  - [${e.date}] ${e.description || "Sin descripción"}: ${fmtCOP(e.amount)} (${cat?.name ?? "Sin categoría"})`;
-    })
-    .join("\n");
-
-  return `Eres un asistente financiero inteligente para la plataforma MonetIA. Responde SIEMPRE en español, de forma clara, concisa y amigable. Usa los datos reales del sistema para dar respuestas precisas.
-
-DATOS ACTUALES DEL SISTEMA (${new Date().toLocaleDateString("es-CO")}):
-
-RESUMEN GLOBAL:
-- Presupuesto total: ${fmtCOP(totalBudget)}
-- Gasto total ejecutado: ${fmtCOP(totalSpent)}
-- Saldo disponible total: ${fmtCOP(totalRemaining)}
-- Total de gastos registrados: ${ctx.expenses.length}
-- Total de proyectos: ${ctx.projects.length}
-
-PROYECTOS:
-${projectsSummary || "  (ninguno registrado aún)"}
-
-GASTOS POR CATEGORÍA (basado en últimos 50 gastos):
-${catSummary || "  (ninguno registrado aún)"}
-
-ÚLTIMOS 50 GASTOS REGISTRADOS:
-${expensesSummary || "  (ninguno registrado aún)"}
-
-INSTRUCCIONES:
-- Responde de manera directa y sin tecnicismos innecesarios.
-- Cuando menciones montos, usa el formato COP con puntos de miles.
-- Si el usuario pregunta por un proyecto específico, extrae y presenta los datos relevantes.
-- Si detectas riesgos (consumo > 80%), indícalo claramente.
-- Sé conciso: máximo 3-4 oraciones por respuesta, a menos que el usuario pida detalles.
-- NO inventes datos que no estén en el contexto.
-- Si no hay proyectos o datos, indícalo amablemente.`;
-}
 
 const SUGGESTIONS = [
   "¿Cuánto he gastado en total?",
@@ -127,6 +62,50 @@ const SUGGESTIONS = [
   "Dame un resumen de todos los proyectos",
   "¿Cuál es la categoría con más gastos?",
 ];
+
+const DOT_KEYS = ["dot-0", "dot-1", "dot-2"];
+
+let csrfReady = false;
+
+function getCookieValue(name: string) {
+  if (typeof document === "undefined") return null;
+  const regex = new RegExp(`(^|; )${name}=([^;]*)`);
+  const match = regex.exec(document.cookie);
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+async function ensureCsrfCookie(apiBase: string) {
+  if (csrfReady) return;
+  await fetch(`${apiBase}/chat/`, {
+    method: "GET",
+    credentials: "include",
+  });
+  csrfReady = true;
+}
+
+async function callGemini(apiBase: string, userMessage: string): Promise<string> {
+  await ensureCsrfCookie(apiBase);
+  const csrfToken = getCookieValue("csrftoken");
+  const response = await fetch(`${apiBase}/chat/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken ?? "",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      question: userMessage,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error ?? "Error del servidor");
+  }
+
+  const data = await response.json();
+  return data.answer;
+}
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -148,6 +127,7 @@ export default function ChatPage() {
   const [ctx, setCtx] = useState<FinancialContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const msgIdCounter = useRef(1);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -174,45 +154,31 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    fetchContext();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchContext();
   }, [fetchContext]);
 
-  async function callGemini(
-    userMessage: string,
-  ): Promise<string> {
-    // Construimos el system prompt igual que antes
-
-    const response = await fetch(`${API_BASE}/chat/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: userMessage,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error ?? "Error del servidor");
-    }
-
-    const data = await response.json();
-    return data.answer;
-  }
-
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
-    const pills: Message["pills"] = [];
     const totalSpent = context.projects.reduce((s, p) => s + Number(p.total_spent), 0);
     const totalBudget = context.projects.reduce((s, p) => s + Number(p.budget), 0);
     const pct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
     const lower = text.toLowerCase();
-    if (lower.includes("gast") || lower.includes("presupuesto") || lower.includes("saldo")) {
-      pills.push({ label: fmtCOP(totalSpent) + " gastado", tone: pct > 80 ? "danger" : "info" });
-      pills.push({
-        label: Math.round(pct) + "% consumido",
-        tone: pct > 90 ? "danger" : pct > 70 ? "warn" : "success",
-      });
+    if (!(lower.includes("gast") || lower.includes("presupuesto") || lower.includes("saldo"))) {
+      return [];
     }
-    return pills.slice(0, 3);
+
+    const spentTone = pct > 80 ? "danger" : "info";
+    let consumptionTone: Message["pills"][number]["tone"] = "success";
+    if (pct > 90) {
+      consumptionTone = "danger";
+    } else if (pct > 70) {
+      consumptionTone = "warn";
+    }
+
+    return [
+      { label: `${fmtCOP(totalSpent)} gastado`, tone: spentTone },
+      { label: `${Math.round(pct)}% consumido`, tone: consumptionTone },
+    ].slice(0, 3);
   }
 
   async function sendMessage(text?: string) {
@@ -221,15 +187,17 @@ export default function ChatPage() {
     setInput("");
     setIsLoading(true);
 
-    const userMsg: Message = { id: Date.now(), role: "user", text: msg, time: getTime() };
+    const nextUserMsgId = msgIdCounter.current++;
+    const userMsg: Message = { id: nextUserMsgId, role: "user", text: msg, time: getTime() };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
       const context = ctx ?? { projects: [], expenses: [], categories: [] };
-      const reply = await callGemini(msg);
+      const reply = await callGemini(API_BASE, msg);
       const pills = extractPills(msg, context);
+      const nextBotMsgId = msgIdCounter.current++;
       const botMsg: Message = {
-        id: Date.now() + 1,
+        id: nextBotMsgId,
         role: "bot",
         text: reply,
         time: getTime(),
@@ -241,7 +209,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now() + 1,
+          id: msgIdCounter.current++,
           role: "bot",
           text: `No pude procesar tu consulta. Verifica que el backend esté activo.\n\nError: ${errMsg}`,
           time: getTime(),
@@ -270,10 +238,17 @@ export default function ChatPage() {
 
   return (
     <div className="space-y-5">
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
+      >
+        ← Volver 
+      </Link>
+
       <div>
         <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
           <span className="text-blue-600">◎</span>
-          Asistente Financiero IA
+          <span>Asistente Financiero IA</span>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           Consulta información financiera de tus proyectos en lenguaje natural.
@@ -310,18 +285,19 @@ export default function ChatPage() {
               )}
               <div className={`max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
                 <div
-                  className={`px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user"
+                  className={`px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                    msg.role === "user"
                       ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm"
                       : "bg-zinc-100 text-zinc-800 rounded-2xl rounded-tl-sm border border-zinc-200"
-                    }`}
+                  }`}
                 >
                   {msg.text}
                 </div>
                 {msg.pills && msg.pills.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {msg.pills.map((p, i) => (
+                    {msg.pills.map((p) => (
                       <span
-                        key={i}
+                        key={`${p.label}-${p.tone}`}
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${pillClass[p.tone]}`}
                       >
                         {p.label}
@@ -345,9 +321,9 @@ export default function ChatPage() {
                 IA
               </div>
               <div className="px-4 py-3 bg-zinc-100 border border-zinc-200 rounded-2xl rounded-tl-sm flex gap-1.5 items-center">
-                {[0, 1, 2].map((i) => (
+                {DOT_KEYS.map((key, i) => (
                   <div
-                    key={i}
+                    key={key}
                     className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce"
                     style={{ animationDelay: `${i * 0.15}s` }}
                   />
