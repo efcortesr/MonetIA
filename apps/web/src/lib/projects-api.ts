@@ -258,3 +258,42 @@ export async function getAiInsights(projectId?: string | number) {
     cache: "no-store",
   });
 }
+
+/**
+ * Descarga el reporte financiero de un proyecto en PDF o Excel.
+ * Aplica los mismos filtros que el dashboard financiero.
+ */
+export async function exportProjectReport(
+  projectId: string | number,
+  format: "pdf" | "excel",
+  filters?: { start_date?: string; end_date?: string; category?: string }
+): Promise<void> {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+
+  const params = new URLSearchParams({ export_format: format });
+  if (filters?.start_date) params.append("start_date", filters.start_date);
+  if (filters?.end_date) params.append("end_date", filters.end_date);
+  if (filters?.category) params.append("category", filters.category);
+
+  const url = `${API_BASE_URL}/projects/${projectId}/export-report/?${params.toString()}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Error al exportar el reporte: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const ext = format === "pdf" ? "pdf" : "xlsx";
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const filenameMatch = disposition.match(/filename="(.+?)"/);
+  const filename = filenameMatch ? filenameMatch[1] : `reporte.${ext}`;
+
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
+}

@@ -90,7 +90,7 @@ export default function BudgetAnalysis({ projectId }: Readonly<{ projectId: stri
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value) => formatCurrency(Number(value))}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               />
               <Legend verticalAlign="bottom" height={36} iconType="circle" />
