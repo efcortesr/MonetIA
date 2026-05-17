@@ -56,10 +56,16 @@ class Project(models.Model):
 
   @property
   def total_expenses(self):
+    # Use prefetch cache when available (avoids extra query after prefetch_related)
+    if hasattr(self, "_prefetched_objects_cache") and "expenses" in self._prefetched_objects_cache:
+      return sum(e.amount for e in self._prefetched_objects_cache["expenses"]) or Decimal("0.00")
     return self.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
   @property
   def total_roles_cost(self):
+    # Use prefetch cache when available
+    if hasattr(self, "_prefetched_objects_cache") and "roles" in self._prefetched_objects_cache:
+      return sum(r.salary for r in self._prefetched_objects_cache["roles"]) or Decimal("0.00")
     return self.roles.aggregate(total=Sum("salary"))["total"] or Decimal("0.00")
 
   @property

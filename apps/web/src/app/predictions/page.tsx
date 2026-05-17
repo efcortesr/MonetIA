@@ -305,7 +305,7 @@ export default async function PredictionsPage({
           <Card key={factor.id} className={riskCardClasses(factor.tone)}>
             <CardHeader
               title={factor.title}
-              right={<Badge tone={factor.tone === "neutral" ? "muted" : factor.tone}>{factor.tone}</Badge>}
+              right={<Badge tone={["danger","warning","info","success","muted"].includes(factor.tone) ? (factor.tone as "danger"|"warning"|"info"|"success"|"muted") : "muted"}>{factor.tone}</Badge>}
             />
             <CardBody>
               <div className="text-[11px] leading-4 text-zinc-700">

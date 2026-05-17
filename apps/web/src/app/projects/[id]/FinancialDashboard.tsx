@@ -20,6 +20,9 @@ import {
 import { ExpenseForm } from "@/components/forms/project-forms";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import ExportReportButton from "@/components/ui/ExportReportButton";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { ToastContainer, type ToastItem } from "@/components/ui/Toast";
 import {
   getProjectFinancialDashboard,
   type ApiCategory,
@@ -42,7 +45,7 @@ type StatCardProps = {
   label: string;
   value: string;
   sub: string;
-  tone: "neutral" | "info" | "danger" | "success" | "warning";
+  tone: "muted" | "info" | "danger" | "success" | "warning";
   isBadge?: boolean;
 };
 
@@ -61,6 +64,14 @@ export default function FinancialDashboard({
     category: "",
   });
   const [editingExpense, setEditingExpense] = useState<ApiExpense | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const addToast = (message: string, type: ToastItem["type"] = "success") => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { id, message, type }]);
+  };
+  const removeToast = (id: string) =>
+    setToasts((prev) => prev.filter((t) => t.id !== id));
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -69,6 +80,7 @@ export default function FinancialDashboard({
       setData(result);
     } catch (error) {
       console.error("Error fetching dashboard:", error);
+      addToast("No se pudo actualizar el dashboard. Intenta de nuevo.", "error");
     } finally {
       setLoading(false);
     }
@@ -85,17 +97,13 @@ export default function FinancialDashboard({
       maximumFractionDigits: 0,
     }).format(value);
 
+  // First load: show rich skeleton matching the real layout
   const formatPercentage = (value: number, total: number) => {
     if (!total || total === 0) return "0%";
     return `${((value / total) * 100).toFixed(1)}%`;
   };
-
   if (!data && loading) {
-    return (
-      <Card className="min-h-[400px] flex items-center justify-center border-dashed border-zinc-200">
-        <div className="animate-pulse text-zinc-400 font-medium">Cargando dashboard financiero...</div>
-      </Card>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!data) return null;
@@ -115,10 +123,13 @@ export default function FinancialDashboard({
 
   return (
     <div className="space-y-6">
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+
       <Card className="p-0 border-blue-100 shadow-sm">
         <CardHeader
-          title="Registrar gastos"
-          subtitle="Puedes seguir agregando gastos en cualquier momento; el dashboard se recalcula con cada nuevo registro."
+          title="Registrar gasto"
+          subtitle="Agrega un nuevo gasto al proyecto. El dashboard se actualiza automáticamente."
         />
         <CardBody>
           <ExpenseForm
@@ -127,6 +138,7 @@ export default function FinancialDashboard({
             mode="create"
             onSuccess={() => {
               fetchDashboard();
+              addToast("✓ Gasto registrado correctamente");
             }}
           />
         </CardBody>
@@ -201,7 +213,7 @@ export default function FinancialDashboard({
           label="Presupuesto Total"
           value={formatCurrency(summary.budget)}
           sub="Fijo del proyecto"
-          tone="neutral"
+          tone="muted"
         />
         <StatCard
           label="Gasto en Periodo"
@@ -246,7 +258,7 @@ export default function FinancialDashboard({
                   <Cell fill="#ef4444" />
                   <Cell fill="#10b981" />
                 </Pie>
-                <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.budget)})`} />
+                <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.budget)})`} />
                 <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
@@ -271,7 +283,7 @@ export default function FinancialDashboard({
                       <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.filtered_spent)})`} />
+                  <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.filtered_spent)})`} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -289,7 +301,7 @@ export default function FinancialDashboard({
               <BarChart data={charts.by_category.slice(0, 5)} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" width={80} style={{ fontSize: "10px" }} />
-                <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.filtered_spent)})`} cursor={{ fill: "transparent" }} />
+                <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.filtered_spent)})`} cursor={{ fill: "transparent" }} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {charts.by_category.slice(0, 5).map((entry, index) => (
                     <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
@@ -316,7 +328,7 @@ export default function FinancialDashboard({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="date" style={{ fontSize: "10px" }} tickMargin={10} />
                 <YAxis tickFormatter={(value) => `$${value / 1000}k`} style={{ fontSize: "10px" }} />
-                <Tooltip formatter={(value: number) => `${formatCurrency(value)} (${formatPercentage(value, summary.budget)} del pto)`} />
+                <Tooltip formatter={(value: any) => `${formatCurrency(Number(value))} (${formatPercentage(Number(value), summary.budget)} del pto)`} />
                 <Area
                   type="monotone"
                   dataKey="value"
@@ -339,7 +351,12 @@ export default function FinancialDashboard({
         <CardHeader
           title="Listado de Gastos"
           subtitle={`${expenses.length} registros encontrados`}
-          right={<div className="text-[10px] font-bold text-zinc-400 mt-1 uppercase">Filtros aplicados</div>}
+          right={
+            <div className="flex items-center gap-3">
+              <div className="text-[10px] font-bold text-zinc-400 uppercase">Filtros aplicados</div>
+              <ExportReportButton projectId={projectId} filters={filters} />
+            </div>
+          }
         />
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-t border-zinc-100">
@@ -406,8 +423,9 @@ export default function FinancialDashboard({
 
               {expenses.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-400 italic">
-                    No se encontraron gastos con estos criterios
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <div className="text-zinc-400 text-sm">No hay gastos para los filtros seleccionados.</div>
+                    <div className="text-zinc-400 text-xs mt-1">Prueba ajustando las fechas o la categoría, o registra un nuevo gasto.</div>
                   </td>
                 </tr>
               )}
@@ -427,6 +445,7 @@ export default function FinancialDashboard({
               onSuccess={() => {
                 setEditingExpense(null);
                 fetchDashboard();
+                addToast("✓ Gasto actualizado correctamente");
               }}
               onCancel={() => setEditingExpense(null)}
             />
@@ -439,9 +458,9 @@ export default function FinancialDashboard({
 
 function StatCard({ label, value, sub, tone, isBadge = false }: Readonly<StatCardProps>) {
   const toneMap: Record<StatCardProps["tone"], string> = {
-    neutral: "text-zinc-500",
-    info: "text-blue-600",
-    danger: "text-rose-600",
+    muted:   "text-zinc-500",
+    info:    "text-blue-600",
+    danger:  "text-rose-600",
     success: "text-emerald-600",
     warning: "text-amber-600",
   };

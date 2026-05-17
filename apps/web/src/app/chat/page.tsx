@@ -220,7 +220,9 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    fetchContext();
+    fetchContext().catch(() => {
+      // context load failure is handled inside fetchContext
+    });
   }, [fetchContext]);
 
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
