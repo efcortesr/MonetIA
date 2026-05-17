@@ -177,27 +177,27 @@ export default function ChatPage() {
     fetchContext();
   }, [fetchContext]);
 
-async function callGemini(
-  userMessage: string,
-): Promise<string> {
-  // Construimos el system prompt igual que antes
+  async function callGemini(
+    userMessage: string,
+  ): Promise<string> {
+    // Construimos el system prompt igual que antes
 
-  const response = await fetch(`${API_BASE}/chat/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      question: userMessage,
-    }),
-  });
+    const response = await fetch(`${API_BASE}/chat/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question: userMessage,
+      }),
+    });
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error ?? "Error del servidor");
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error ?? "Error del servidor");
+    }
+
+    const data = await response.json();
+    return data.answer;
   }
-
-  const data = await response.json();
-  return data.answer;
-}
 
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
     const pills: Message["pills"] = [];
@@ -310,11 +310,10 @@ async function callGemini(
               )}
               <div className={`max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
                 <div
-                  className={`px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                    msg.role === "user"
+                  className={`px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user"
                       ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm"
                       : "bg-zinc-100 text-zinc-800 rounded-2xl rounded-tl-sm border border-zinc-200"
-                  }`}
+                    }`}
                 >
                   {msg.text}
                 </div>
