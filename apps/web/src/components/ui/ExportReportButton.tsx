@@ -98,7 +98,13 @@ export default function ExportReportButton({ projectId, filters }: Readonly<Prop
       {open && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <button
+            type="button"
+            aria-label="Cerrar menú"
+            className="fixed inset-0 z-40 cursor-default bg-transparent"
+            onClick={() => setOpen(false)}
+            onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+          />
           <div
             role="menu"
             className="absolute right-0 z-50 mt-1.5 w-44 rounded-xl border border-zinc-100 bg-white shadow-xl shadow-zinc-200/60 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
@@ -115,7 +121,7 @@ export default function ExportReportButton({ projectId, filters }: Readonly<Prop
               className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-red-50 hover:text-red-700 transition-colors"
             >
               <span className="text-red-500">{ICON_PDF}</span>
-              Exportar como PDF
+              {" "}Exportar como PDF
             </button>
             <button
               id="export-excel-btn"
@@ -124,7 +130,7 @@ export default function ExportReportButton({ projectId, filters }: Readonly<Prop
               className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
             >
               <span className="text-emerald-600">{ICON_EXCEL}</span>
-              Exportar como Excel
+              {" "}Exportar como Excel
             </button>
           </div>
         </>

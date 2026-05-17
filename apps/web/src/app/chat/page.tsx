@@ -53,7 +53,74 @@ function getTime() {
   return new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 }
 
+function buildSystemPrompt(ctx: FinancialContext): string {
+  const totalBudget = ctx.projects.reduce((s, p) => s + Number(p.budget), 0);
+  const totalSpent = ctx.projects.reduce((s, p) => s + Number(p.total_spent), 0);
+  const totalRemaining = ctx.projects.reduce((s, p) => s + Number(p.remaining_budget), 0);
 
+  const projectsSummary = ctx.projects
+    .map((p) => {
+      const pct =
+        Number(p.budget) > 0
+          ? ((Number(p.total_spent) / Number(p.budget)) * 100).toFixed(1)
+          : "0";
+      return `- ${p.name} (ID:${p.id}): presupuesto=${fmtCOP(p.budget)}, gastado=${fmtCOP(p.total_spent)}, restante=${fmtCOP(p.remaining_budget)}, consumo=${pct}%, estado=${p.status}`;
+    })
+    .join("\n");
+
+  // Solo los últimos 50 gastos ordenados por fecha
+  const lastExpenses = [...ctx.expenses]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 50);
+
+  const catTotals: Record<string, number> = {};
+  lastExpenses.forEach((e) => {
+    const cat = ctx.categories.find((c) => c.id === e.category);
+    const name = cat ? cat.name : "Sin categoría";
+    catTotals[name] = (catTotals[name] || 0) + Number(e.amount);
+  });
+
+  const catSummary = Object.entries(catTotals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, amt]) => `  - ${name}: ${fmtCOP(amt)}`)
+    .join("\n");
+
+  const expensesSummary = lastExpenses
+    .map((e) => {
+      const cat = ctx.categories.find((c) => c.id === e.category);
+      return `  - [${e.date}] ${e.description || "Sin descripción"}: ${fmtCOP(e.amount)} (${cat?.name ?? "Sin categoría"})`;
+    })
+    .join("\n");
+
+  return `Eres un asistente financiero inteligente para la plataforma MonetIA. Responde SIEMPRE en español, de forma clara, concisa y amigable. Usa los datos reales del sistema para dar respuestas precisas.
+
+DATOS ACTUALES DEL SISTEMA (${new Date().toLocaleDateString("es-CO")}):
+
+RESUMEN GLOBAL:
+- Presupuesto total: ${fmtCOP(totalBudget)}
+- Gasto total ejecutado: ${fmtCOP(totalSpent)}
+- Saldo disponible total: ${fmtCOP(totalRemaining)}
+- Total de gastos registrados: ${ctx.expenses.length}
+- Total de proyectos: ${ctx.projects.length}
+
+PROYECTOS:
+${projectsSummary || "  (ninguno registrado aún)"}
+
+GASTOS POR CATEGORÍA (basado en últimos 50 gastos):
+${catSummary || "  (ninguno registrado aún)"}
+
+ÚLTIMOS 50 GASTOS REGISTRADOS:
+${expensesSummary || "  (ninguno registrado aún)"}
+
+INSTRUCCIONES:
+- Responde de manera directa y sin tecnicismos innecesarios.
+- Cuando menciones montos, usa el formato COP con puntos de miles.
+- Si el usuario pregunta por un proyecto específico, extrae y presenta los datos relevantes.
+- Si detectas riesgos (consumo > 80%), indícalo claramente.
+- Sé conciso: máximo 3-4 oraciones por respuesta, a menos que el usuario pida detalles.
+- NO inventes datos que no estén en el contexto.
+- Si no hay proyectos o datos, indícalo amablemente.`;
+}
 
 const SUGGESTIONS = [
   "¿Cuánto he gastado en total?",
@@ -127,7 +194,6 @@ export default function ChatPage() {
   const [ctx, setCtx] = useState<FinancialContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const msgIdCounter = useRef(1);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -154,8 +220,9 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchContext();
+    fetchContext().catch(() => {
+      // context load failure is handled inside fetchContext
+    });
   }, [fetchContext]);
 
   function extractPills(text: string, context: FinancialContext): Message["pills"] {
@@ -187,17 +254,16 @@ export default function ChatPage() {
     setInput("");
     setIsLoading(true);
 
-    const nextUserMsgId = msgIdCounter.current++;
-    const userMsg: Message = { id: nextUserMsgId, role: "user", text: msg, time: getTime() };
+    const userMsg: Message = { id: Date.now(), role: "user", text: msg, time: getTime() };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
       const context = ctx ?? { projects: [], expenses: [], categories: [] };
+      buildSystemPrompt(context);
       const reply = await callGemini(API_BASE, msg);
       const pills = extractPills(msg, context);
-      const nextBotMsgId = msgIdCounter.current++;
       const botMsg: Message = {
-        id: nextBotMsgId,
+        id: Date.now() + 1,
         role: "bot",
         text: reply,
         time: getTime(),
@@ -209,7 +275,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: msgIdCounter.current++,
+          id: Date.now() + 1,
           role: "bot",
           text: `No pude procesar tu consulta. Verifica que el backend esté activo.\n\nError: ${errMsg}`,
           time: getTime(),

@@ -4,7 +4,7 @@
  * Generic animated skeleton block — used to indicate loading state
  * without layout shift. Width/height are controlled by className.
  */
-export function Skeleton({ className = "" }: { className?: string }) {
+export function Skeleton({ className = "" }: Readonly<{ className?: string }>) {
   return (
     <div
       aria-hidden="true"
@@ -24,19 +24,26 @@ export function StatCardSkeleton() {
   );
 }
 
+function getCellWidth(index: number, cols: number): string {
+  if (index === 1) return "w-40";
+  if (index === cols - 1) return "w-16 ml-auto";
+  return "w-24";
+}
+
 /** Pre-built skeleton for the expense table rows */
-export function TableRowSkeleton({ cols = 5 }: { cols?: number }) {
+export function TableRowSkeleton({ cols = 5 }: Readonly<{ cols?: number }>) {
   return (
     <tr>
       {Array.from({ length: cols }).map((_, i) => (
-        // biome-ignore lint: index key ok for static skeleton
-        <td key={i} className="px-6 py-4">
-          <Skeleton className={`h-3 ${i === 1 ? "w-40" : i === cols - 1 ? "w-16 ml-auto" : "w-24"}`} />
+        <td key={`skeleton-col-${i}`} className="px-6 py-4">
+          <Skeleton className={`h-3 ${getCellWidth(i, cols)}`} />
         </td>
       ))}
     </tr>
   );
 }
+
+const CHART_SKELETON_IDS = ["chart-a", "chart-b", "chart-c"];
 
 /** Pre-built skeleton that matches the FinancialDashboard loading state */
 export function DashboardSkeleton() {
@@ -51,9 +58,8 @@ export function DashboardSkeleton() {
       </div>
       {/* Charts row */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          // biome-ignore lint: index key ok for static skeleton
-          <div key={i} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm space-y-3">
+        {CHART_SKELETON_IDS.map((id) => (
+          <div key={id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm space-y-3">
             <Skeleton className="h-3 w-32" />
             <Skeleton className="h-2 w-24" />
             <Skeleton className="h-48 w-full mt-2 rounded-xl" />

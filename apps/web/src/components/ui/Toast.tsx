@@ -98,10 +98,10 @@ export type ToastItem = {
 export function ToastContainer({
   toasts,
   onClose,
-}: {
+}: Readonly<{
   toasts: ToastItem[];
   onClose: (id: string) => void;
-}) {
+}>) {
   if (toasts.length === 0) return null;
   return (
     <div

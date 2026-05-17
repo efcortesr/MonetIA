@@ -54,6 +54,264 @@ def add_months(source_date, months):
     day = min(source_date.day, 28)
     return date(year, month, day)
 
+NUMBER_FORMAT = "#,##0.00"
+
+
+def fmt_cop(value):
+    return f"COP {float(value):,.0f}"
+
+
+def _build_report_data(project, query_params):
+    budget = project.budget
+    total_spent = project.total_spent
+    expenses_qs = Expense.objects.filter(project=project).select_related("category").order_by("-date")
+    if query_params.get("start_date"):
+        expenses_qs = expenses_qs.filter(date__gte=query_params["start_date"])
+    if query_params.get("end_date"):
+        expenses_qs = expenses_qs.filter(date__lte=query_params["end_date"])
+    if query_params.get("category"):
+        expenses_qs = expenses_qs.filter(category_id=query_params["category"])
+    return {
+        "budget": budget,
+        "total_spent": total_spent,
+        "total_remaining": max(Decimal("0"), budget - total_spent),
+        "total_over_budget": max(Decimal("0"), total_spent - budget),
+        "consumed_pct": float(total_spent / budget * 100) if budget > 0 else 0.0,
+        "expenses": list(expenses_qs),
+        "roles": list(project.roles.all()),
+    }
+
+
+def _render_pdf(project, data):
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    except ImportError:
+        return Response({"error": "reportlab no está instalado."}, status=500)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=2*cm, leftMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    style_title = ParagraphStyle("title", parent=styles["Heading1"], fontSize=18, spaceAfter=6,
+                                 textColor=colors.HexColor("#1e40af"))
+    style_h2 = ParagraphStyle("h2", parent=styles["Heading2"], fontSize=13, spaceBefore=14, spaceAfter=4,
+                               textColor=colors.HexColor("#374151"))
+    style_small = ParagraphStyle("small", parent=styles["Normal"], fontSize=9,
+                                 textColor=colors.HexColor("#6b7280"))
+    header_bg = colors.HexColor("#1e40af")
+    row_alt = colors.HexColor("#f0f4ff")
+    base_style = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), header_bg),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, row_alt]),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d1d5db")),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ])
+
+    content = [
+        Paragraph("Reporte Financiero", style_title),
+        Paragraph(f"Proyecto: {project.name}", style_h2),
+    ]
+    if project.description:
+        content.append(Paragraph(project.description, style_small))
+    content.append(Paragraph(
+        f"Periodo: {project.start_date} → {project.end_date}  |  Generado: {timezone.now().strftime('%Y-%m-%d %H:%M')}",
+        style_small
+    ))
+    content.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#dbeafe"), spaceAfter=8))
+
+    content.append(Paragraph("Resumen Ejecutivo", style_h2))
+    summary_data = [
+        ["Concepto", "Valor"],
+        ["Presupuesto total", fmt_cop(data["budget"])],
+        ["Total gastado (gastos + roles)", fmt_cop(data["total_spent"])],
+        ["Saldo restante", fmt_cop(data["total_remaining"])],
+        ["Excedido", fmt_cop(data["total_over_budget"])],
+        ["Porcentaje ejecutado", f"{data['consumed_pct']:.1f}%"],
+    ]
+    t = Table(summary_data, colWidths=[10*cm, 6*cm])
+    t.setStyle(base_style)
+    content += [t, Spacer(1, 0.4*cm)]
+
+    if data["roles"]:
+        content.append(Paragraph("Personal y Roles", style_h2))
+        roles_data = [["Rol", "Salario mensual"]] + [[r.name, fmt_cop(r.salary)] for r in data["roles"]]
+        rt = Table(roles_data, colWidths=[10*cm, 6*cm])
+        rt.setStyle(base_style)
+        content += [rt, Spacer(1, 0.4*cm)]
+
+    expenses = data["expenses"]
+    content.append(Paragraph(f"Listado de Gastos ({len(expenses)} registros)", style_h2))
+    if expenses:
+        exp_data = [["Fecha", "Descripción", "Categoría", "Monto"]]
+        for exp in expenses:
+            exp_data.append([str(exp.date), exp.description or "Sin descripción",
+                             exp.category.name if exp.category else "—", fmt_cop(exp.amount)])
+        exp_style = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), header_bg),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, row_alt]),
+            ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d1d5db")),
+            ("ALIGN", (3, 0), (3, -1), "RIGHT"),
+            ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("WORDWRAP", (1, 1), (1, -1), "LTR"),
+        ])
+        et = Table(exp_data, colWidths=[2.5*cm, 7.5*cm, 3.5*cm, 3.5*cm], repeatRows=1)
+        et.setStyle(exp_style)
+        content.append(et)
+    else:
+        content.append(Paragraph("No hay gastos registrados con los filtros seleccionados.", style_small))
+
+    doc.build(content)
+    buffer.seek(0)
+    filename = f"reporte_{project.name.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d')}.pdf"
+    response = HttpResponse(buffer, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+def _render_excel(project, data):
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    except ImportError:
+        return Response({"error": "openpyxl no está instalado."}, status=500)
+
+    BLUE = "1E40AF"
+    ALT_ROW = "F0F4FF"
+    header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill("solid", fgColor=BLUE)
+    normal_font = Font(name="Calibri", size=10)
+    label_font = Font(name="Calibri", bold=True, size=10)
+    center = Alignment(horizontal="center", vertical="center")
+    right_align = Alignment(horizontal="right", vertical="center")
+    thin_border = Border(
+        left=Side(style="thin", color="D1D5DB"), right=Side(style="thin", color="D1D5DB"),
+        top=Side(style="thin", color="D1D5DB"), bottom=Side(style="thin", color="D1D5DB"),
+    )
+
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Resumen"
+    ws1.column_dimensions["A"].width = 30
+    ws1.column_dimensions["B"].width = 22
+    ws1["A1"] = "Reporte Financiero – MonetIA"
+    ws1["A1"].font = Font(name="Calibri", bold=True, color=BLUE, size=16)
+    ws1.merge_cells("A1:B1")
+    ws1["A1"].alignment = center
+    ws1["A2"] = f"Proyecto: {project.name}"
+    ws1["A2"].font = Font(name="Calibri", bold=True, color=BLUE, size=12)
+    ws1.merge_cells("A2:B2")
+    ws1["A3"] = f"Periodo: {project.start_date} → {project.end_date}"
+    ws1["A3"].font = Font(name="Calibri", italic=True, color="6B7280", size=9)
+    ws1.merge_cells("A3:B3")
+    ws1["A4"] = f"Generado: {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+    ws1["A4"].font = Font(name="Calibri", italic=True, color="6B7280", size=9)
+    ws1.merge_cells("A4:B4")
+    ws1.row_dimensions[5].height = 8
+
+    for col, val in enumerate(["Concepto", "Valor"], start=1):
+        cell = ws1.cell(row=6, column=col, value=val)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = thin_border
+
+    summary_rows = [
+        ("Presupuesto total", fmt_cop(data["budget"])),
+        ("Total gastado (gastos + roles)", fmt_cop(data["total_spent"])),
+        ("Saldo restante", fmt_cop(data["total_remaining"])),
+        ("Excedido", fmt_cop(data["total_over_budget"])),
+        ("Porcentaje ejecutado", f"{data['consumed_pct']:.1f}%"),
+    ]
+    for i, (label, value) in enumerate(summary_rows, start=7):
+        fill = PatternFill("solid", fgColor=ALT_ROW) if i % 2 == 0 else None
+        c1 = ws1.cell(row=i, column=1, value=label)
+        c2 = ws1.cell(row=i, column=2, value=value)
+        for c in (c1, c2):
+            c.font = normal_font
+            c.border = thin_border
+            if fill:
+                c.fill = fill
+        c2.alignment = right_align
+
+    ws2 = wb.create_sheet("Gastos")
+    ws2.column_dimensions["A"].width = 14
+    ws2.column_dimensions["B"].width = 36
+    ws2.column_dimensions["C"].width = 20
+    ws2.column_dimensions["D"].width = 20
+    for col, h in enumerate(["Fecha", "Descripción", "Categoría", "Monto (COP)"], start=1):
+        cell = ws2.cell(row=1, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = thin_border
+
+    expenses = data["expenses"]
+    for row_idx, exp in enumerate(expenses, start=2):
+        fill = PatternFill("solid", fgColor=ALT_ROW) if row_idx % 2 == 0 else None
+        for col_idx, val in enumerate([str(exp.date), exp.description or "Sin descripción",
+                                       exp.category.name if exp.category else "—",
+                                       float(exp.amount)], start=1):
+            cell = ws2.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = normal_font
+            cell.border = thin_border
+            if fill:
+                cell.fill = fill
+        ws2.cell(row=row_idx, column=4).number_format = NUMBER_FORMAT
+        ws2.cell(row=row_idx, column=4).alignment = right_align
+
+    total_row = len(expenses) + 2
+    ws2.cell(row=total_row, column=3, value="TOTAL").font = label_font
+    tc = ws2.cell(row=total_row, column=4, value=sum(float(e.amount) for e in expenses))
+    tc.font = Font(name="Calibri", bold=True, size=10)
+    tc.number_format = NUMBER_FORMAT
+    tc.alignment = right_align
+    tc.border = thin_border
+
+    if data["roles"]:
+        ws3 = wb.create_sheet("Personal")
+        ws3.column_dimensions["A"].width = 30
+        ws3.column_dimensions["B"].width = 22
+        for col, h in enumerate(["Rol", "Salario mensual (COP)"], start=1):
+            cell = ws3.cell(row=1, column=col, value=h)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center
+            cell.border = thin_border
+        for row_idx, role in enumerate(data["roles"], start=2):
+            fill = PatternFill("solid", fgColor=ALT_ROW) if row_idx % 2 == 0 else None
+            c1 = ws3.cell(row=row_idx, column=1, value=role.name)
+            c2 = ws3.cell(row=row_idx, column=2, value=float(role.salary))
+            for c in (c1, c2):
+                c.font = normal_font
+                c.border = thin_border
+                if fill:
+                    c.fill = fill
+            c2.number_format = NUMBER_FORMAT
+            c2.alignment = right_align
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    filename = f"reporte_{project.name.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d')}.xlsx"
+    response = HttpResponse(buffer, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
 
 def month_label(d):
     return d.strftime("%b")
@@ -312,323 +570,12 @@ class ProjectsViewSet(viewsets.ModelViewSet):
         """
         project = self.get_object()
         fmt = request.query_params.get("export_format", "pdf").lower()
+        report_data = _build_report_data(project, request.query_params)
 
-        # ── Datos del proyecto ──────────────────────────────────────────
-        budget = project.budget
-        total_spent = project.total_spent
-        total_remaining = max(Decimal("0"), budget - total_spent)
-        total_over_budget = max(Decimal("0"), total_spent - budget)
-        consumed_pct = float(total_spent / budget * 100) if budget > 0 else 0.0
-
-        # Filtros de gastos
-        expenses_qs = Expense.objects.filter(project=project).select_related("category").order_by("-date")
-        start_date = request.query_params.get("start_date")
-        end_date = request.query_params.get("end_date")
-        category_id = request.query_params.get("category")
-        if start_date:
-            expenses_qs = expenses_qs.filter(date__gte=start_date)
-        if end_date:
-            expenses_qs = expenses_qs.filter(date__lte=end_date)
-        if category_id:
-            expenses_qs = expenses_qs.filter(category_id=category_id)
-
-        expenses_list = list(expenses_qs)
-
-        def fmt_cop(value):
-            return f"COP {float(value):,.0f}"
-
-        # ── Roles ──────────────────────────────────────────────────────
-        roles = list(project.roles.all())
-
-        # ══════════════════════════════════════════════════════════════
-        # PDF
-        # ══════════════════════════════════════════════════════════════
         if fmt == "pdf":
-            try:
-                from reportlab.lib.pagesizes import A4
-                from reportlab.lib import colors
-                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-                from reportlab.lib.units import cm
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-                from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-            except ImportError:
-                return Response({"error": "reportlab no está instalado."}, status=500)
-
-            buffer = io.BytesIO()
-            doc = SimpleDocTemplate(
-                buffer,
-                pagesize=A4,
-                rightMargin=2 * cm,
-                leftMargin=2 * cm,
-                topMargin=2 * cm,
-                bottomMargin=2 * cm,
-            )
-
-            styles = getSampleStyleSheet()
-            style_title = ParagraphStyle("title", parent=styles["Heading1"], fontSize=18, spaceAfter=6, textColor=colors.HexColor("#1e40af"))
-            style_h2 = ParagraphStyle("h2", parent=styles["Heading2"], fontSize=13, spaceBefore=14, spaceAfter=4, textColor=colors.HexColor("#374151"))
-            style_small = ParagraphStyle("small", parent=styles["Normal"], fontSize=9, textColor=colors.HexColor("#6b7280"))
-            style_normal = styles["Normal"]
-
-            # Colores de tabla
-            header_bg = colors.HexColor("#1e40af")
-            row_alt = colors.HexColor("#f0f4ff")
-
-            content = []
-
-            # Título
-            content.append(Paragraph(f"Reporte Financiero", style_title))
-            content.append(Paragraph(f"Proyecto: {project.name}", style_h2))
-            if project.description:
-                content.append(Paragraph(project.description, style_small))
-            content.append(Paragraph(
-                f"Periodo: {project.start_date} → {project.end_date}  |  Generado: {timezone.now().strftime('%Y-%m-%d %H:%M')}",
-                style_small
-            ))
-            content.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#dbeafe"), spaceAfter=8))
-
-            # ── Resumen ejecutivo ──
-            content.append(Paragraph("Resumen Ejecutivo", style_h2))
-            summary_data = [
-                ["Concepto", "Valor"],
-                ["Presupuesto total", fmt_cop(budget)],
-                ["Total gastado (gastos + roles)", fmt_cop(total_spent)],
-                ["Saldo restante", fmt_cop(total_remaining)],
-                ["Excedido", fmt_cop(total_over_budget)],
-                ["Porcentaje ejecutado", f"{consumed_pct:.1f}%"],
-            ]
-            summary_style = TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), header_bg),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, row_alt]),
-                ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d1d5db")),
-                ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-                ("TOPPADDING", (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-                ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-            ])
-            summary_table = Table(summary_data, colWidths=[10 * cm, 6 * cm])
-            summary_table.setStyle(summary_style)
-            content.append(summary_table)
-            content.append(Spacer(1, 0.4 * cm))
-
-            # ── Roles / Personal ──
-            if roles:
-                content.append(Paragraph("Personal y Roles", style_h2))
-                roles_data = [["Rol", "Salario mensual"]]
-                for role in roles:
-                    roles_data.append([role.name, fmt_cop(role.salary)])
-                roles_table = Table(roles_data, colWidths=[10 * cm, 6 * cm])
-                roles_table.setStyle(summary_style)
-                content.append(roles_table)
-                content.append(Spacer(1, 0.4 * cm))
-
-            # ── Gastos ──
-            content.append(Paragraph(f"Listado de Gastos ({len(expenses_list)} registros)", style_h2))
-            if expenses_list:
-                exp_data = [["Fecha", "Descripción", "Categoría", "Monto"]]
-                for exp in expenses_list:
-                    exp_data.append([
-                        str(exp.date),
-                        exp.description or "Sin descripción",
-                        exp.category.name if exp.category else "—",
-                        fmt_cop(exp.amount),
-                    ])
-                exp_style = TableStyle([
-                    ("BACKGROUND", (0, 0), (-1, 0), header_bg),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, row_alt]),
-                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d1d5db")),
-                    ("ALIGN", (3, 0), (3, -1), "RIGHT"),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                    ("WORDWRAP", (1, 1), (1, -1), "LTR"),
-                ])
-                exp_table = Table(
-                    exp_data,
-                    colWidths=[2.5 * cm, 7.5 * cm, 3.5 * cm, 3.5 * cm],
-                    repeatRows=1,
-                )
-                exp_table.setStyle(exp_style)
-                content.append(exp_table)
-            else:
-                content.append(Paragraph("No hay gastos registrados con los filtros seleccionados.", style_small))
-
-            doc.build(content)
-            buffer.seek(0)
-            filename = f"reporte_{project.name.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d')}.pdf"
-            response = HttpResponse(buffer, content_type="application/pdf")
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
-            return response
-
-        # ══════════════════════════════════════════════════════════════
-        # EXCEL
-        # ══════════════════════════════════════════════════════════════
-        elif fmt == "excel":
-            try:
-                from openpyxl import Workbook
-                from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
-                from openpyxl.utils import get_column_letter
-            except ImportError:
-                return Response({"error": "openpyxl no está instalado."}, status=500)
-
-            wb = Workbook()
-
-            BLUE = "1E40AF"
-            LIGHT_BLUE = "DBEAFE"
-            ALT_ROW = "F0F4FF"
-
-            header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
-            header_fill = PatternFill("solid", fgColor=BLUE)
-            subheader_font = Font(name="Calibri", bold=True, color=BLUE, size=12)
-            label_font = Font(name="Calibri", bold=True, size=10)
-            normal_font = Font(name="Calibri", size=10)
-            alt_fill = PatternFill("solid", fgColor=ALT_ROW)
-            center = Alignment(horizontal="center", vertical="center")
-            right_align = Alignment(horizontal="right", vertical="center")
-            thin_border = Border(
-                left=Side(style="thin", color="D1D5DB"),
-                right=Side(style="thin", color="D1D5DB"),
-                top=Side(style="thin", color="D1D5DB"),
-                bottom=Side(style="thin", color="D1D5DB"),
-            )
-
-            # ── Hoja 1: Resumen ────────────────────────────────────────
-            ws1 = wb.active
-            ws1.title = "Resumen"
-            ws1.column_dimensions["A"].width = 30
-            ws1.column_dimensions["B"].width = 22
-
-            ws1["A1"] = "Reporte Financiero – MonetIA"
-            ws1["A1"].font = Font(name="Calibri", bold=True, color=BLUE, size=16)
-            ws1.merge_cells("A1:B1")
-            ws1["A1"].alignment = center
-
-            ws1["A2"] = f"Proyecto: {project.name}"
-            ws1["A2"].font = subheader_font
-            ws1.merge_cells("A2:B2")
-
-            ws1["A3"] = f"Periodo: {project.start_date} → {project.end_date}"
-            ws1["A3"].font = Font(name="Calibri", italic=True, color="6B7280", size=9)
-            ws1.merge_cells("A3:B3")
-
-            ws1["A4"] = f"Generado: {timezone.now().strftime('%Y-%m-%d %H:%M')}"
-            ws1["A4"].font = Font(name="Calibri", italic=True, color="6B7280", size=9)
-            ws1.merge_cells("A4:B4")
-
-            ws1.row_dimensions[5].height = 8  # espacio
-
-            # Encabezado de resumen
-            for col, val in enumerate(["Concepto", "Valor"], start=1):
-                cell = ws1.cell(row=6, column=col, value=val)
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = center
-                cell.border = thin_border
-
-            summary_rows = [
-                ("Presupuesto total", fmt_cop(budget)),
-                ("Total gastado (gastos + roles)", fmt_cop(total_spent)),
-                ("Saldo restante", fmt_cop(total_remaining)),
-                ("Excedido", fmt_cop(total_over_budget)),
-                ("Porcentaje ejecutado", f"{consumed_pct:.1f}%"),
-            ]
-            for i, (label, value) in enumerate(summary_rows, start=7):
-                fill = PatternFill("solid", fgColor=ALT_ROW) if i % 2 == 0 else None
-                c1 = ws1.cell(row=i, column=1, value=label)
-                c2 = ws1.cell(row=i, column=2, value=value)
-                for c in (c1, c2):
-                    c.font = normal_font
-                    c.border = thin_border
-                    if fill:
-                        c.fill = fill
-                c2.alignment = right_align
-
-            # ── Hoja 2: Gastos ─────────────────────────────────────────
-            ws2 = wb.create_sheet("Gastos")
-            ws2.column_dimensions["A"].width = 14
-            ws2.column_dimensions["B"].width = 36
-            ws2.column_dimensions["C"].width = 20
-            ws2.column_dimensions["D"].width = 20
-
-            headers = ["Fecha", "Descripción", "Categoría", "Monto (COP)"]
-            for col, h in enumerate(headers, start=1):
-                cell = ws2.cell(row=1, column=col, value=h)
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = center
-                cell.border = thin_border
-
-            for row_idx, exp in enumerate(expenses_list, start=2):
-                fill = PatternFill("solid", fgColor=ALT_ROW) if row_idx % 2 == 0 else None
-                row_data = [
-                    str(exp.date),
-                    exp.description or "Sin descripción",
-                    exp.category.name if exp.category else "—",
-                    float(exp.amount),
-                ]
-                for col_idx, val in enumerate(row_data, start=1):
-                    cell = ws2.cell(row=row_idx, column=col_idx, value=val)
-                    cell.font = normal_font
-                    cell.border = thin_border
-                    if fill:
-                        cell.fill = fill
-                if expenses_list:
-                    ws2.cell(row=row_idx, column=4).number_format = '#,##0.00'
-                    ws2.cell(row=row_idx, column=4).alignment = right_align
-
-            # Fila de total
-            total_row = len(expenses_list) + 2
-            ws2.cell(row=total_row, column=3, value="TOTAL").font = label_font
-            total_amount = sum(float(e.amount) for e in expenses_list)
-            tc = ws2.cell(row=total_row, column=4, value=total_amount)
-            tc.font = Font(name="Calibri", bold=True, size=10)
-            tc.number_format = '#,##0.00'
-            tc.alignment = right_align
-            tc.border = thin_border
-
-            # ── Hoja 3: Personal ──────────────────────────────────────
-            if roles:
-                ws3 = wb.create_sheet("Personal")
-                ws3.column_dimensions["A"].width = 30
-                ws3.column_dimensions["B"].width = 22
-                for col, h in enumerate(["Rol", "Salario mensual (COP)"], start=1):
-                    cell = ws3.cell(row=1, column=col, value=h)
-                    cell.font = header_font
-                    cell.fill = header_fill
-                    cell.alignment = center
-                    cell.border = thin_border
-
-                for row_idx, role in enumerate(roles, start=2):
-                    fill = PatternFill("solid", fgColor=ALT_ROW) if row_idx % 2 == 0 else None
-                    c1 = ws3.cell(row=row_idx, column=1, value=role.name)
-                    c2 = ws3.cell(row=row_idx, column=2, value=float(role.salary))
-                    for c in (c1, c2):
-                        c.font = normal_font
-                        c.border = thin_border
-                        if fill:
-                            c.fill = fill
-                    c2.number_format = '#,##0.00'
-                    c2.alignment = right_align
-
-            buffer = io.BytesIO()
-            wb.save(buffer)
-            buffer.seek(0)
-            filename = f"reporte_{project.name.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d')}.xlsx"
-            response = HttpResponse(
-                buffer,
-                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
-            return response
-
+            return _render_pdf(project, report_data)
+        if fmt == "excel":
+            return _render_excel(project, report_data)
         return Response({"error": "Formato no soportado. Use 'pdf' o 'excel'."}, status=400)
 
 

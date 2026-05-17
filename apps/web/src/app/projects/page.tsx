@@ -8,7 +8,7 @@ function formatCOP(value: number) {
   return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
-function ProgressBar({ value, tone }: { value: number; tone: "safe" | "warning" | "danger" }) {
+function ProgressBar({ value, tone }: Readonly<{ value: number; tone: "safe" | "warning" | "danger" }>) {
   const pct = Math.max(0, Math.min(100, value));
   const colors = {
     safe:    "bg-emerald-500",
@@ -16,17 +16,20 @@ function ProgressBar({ value, tone }: { value: number; tone: "safe" | "warning" 
     danger:  "bg-rose-500",
   };
   return (
-    <div className="h-1.5 w-full rounded-full bg-zinc-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-      <div className={`h-1.5 rounded-full transition-all duration-500 ${colors[tone]}`} style={{ width: `${pct}%` }} />
-    </div>
+    <progress
+      className={`h-1.5 w-full rounded-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-zinc-100 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-500 ${colors[tone]}`}
+      value={pct}
+      max={100}
+      aria-label={`Ejecución presupuestal: ${Math.round(pct)}%`}
+    />
   );
 }
 
 function mapStatusTone(status: string): BadgeTone {
   const n = status.toLowerCase();
-  if (n.includes("riesgo") || n.includes("risk"))        return "danger";
-  if (n.includes("completado") || n.includes("done"))    return "muted";
-  if (n.includes("activo") || n.includes("track"))       return "info";
+  if (n.includes("riesgo") || n.includes("risk"))     return "danger";
+  if (n.includes("completado") || n.includes("done")) return "muted";
+  if (n.includes("activo") || n.includes("track"))    return "info";
   return "warning";
 }
 
@@ -55,7 +58,7 @@ function EmptyState() {
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ message }: Readonly<{ message: string }>) {
   return (
     <Card className="p-6">
       <div className="flex items-start gap-3">
@@ -76,6 +79,29 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
+function getProjectCountLabel(count: number): string {
+  const plural = count !== 1 ? "s" : "";
+  return `${count} proyecto${plural} encontrado${plural}.`;
+}
+
+function getSpentColorClass(tone: "safe" | "warning" | "danger"): string {
+  if (tone === "danger") return "text-rose-600";
+  if (tone === "warning") return "text-amber-600";
+  return "text-zinc-700";
+}
+
+function getPctColorClass(tone: "safe" | "warning" | "danger"): string {
+  if (tone === "danger") return "text-rose-600";
+  if (tone === "warning") return "text-amber-600";
+  return "text-emerald-600";
+}
+
+function getProjectTone(pct: number): "safe" | "warning" | "danger" {
+  if (pct >= 100) return "danger";
+  if (pct >= 80) return "warning";
+  return "safe";
+}
+
 export default async function ProjectsPage() {
   const result = await listProjects()
     .then((projects: ApiProject[]) => ({ projects, error: null as string | null }))
@@ -84,6 +110,15 @@ export default async function ProjectsPage() {
       error: error instanceof Error ? error.message : "Error desconocido al cargar proyectos.",
     }));
 
+  let subtitleText: string;
+  if (result.error) {
+    subtitleText = "No se pudo conectar con el backend.";
+  } else if (result.projects.length > 0) {
+    subtitleText = getProjectCountLabel(result.projects.length);
+  } else {
+    subtitleText = "Aún no hay proyectos registrados.";
+  }
+
   return (
     <div className="space-y-5">
       {/* ── Header ── */}
@@ -91,17 +126,13 @@ export default async function ProjectsPage() {
         <div>
           <div className="flex items-center gap-2 text-xl font-semibold text-zinc-900">
             <span className="text-blue-600">▣</span>
-            Proyectos
+            {" "}Proyectos
           </div>
           <div className="mt-1 text-xs text-zinc-500">
-            {result.error
-              ? "No se pudo conectar con el backend."
-              : result.projects.length > 0
-                ? `${result.projects.length} proyecto${result.projects.length !== 1 ? "s" : ""} encontrado${result.projects.length !== 1 ? "s" : ""}.`
-                : "Aún no hay proyectos registrados."}
+            {subtitleText}
           </div>
         </div>
-        {!result.error && (
+        {result.error === null && (
           <Link
             id="new-project-btn"
             href="/projects/new"
@@ -116,17 +147,16 @@ export default async function ProjectsPage() {
       {result.error && <ErrorState message={result.error} />}
 
       {/* ── Empty state ── */}
-      {!result.error && result.projects.length === 0 && <EmptyState />}
+      {result.error === null && result.projects.length === 0 && <EmptyState />}
 
       {/* ── Project grid ── */}
-      {!result.error && result.projects.length > 0 && (
+      {result.error === null && result.projects.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
           {result.projects.map((project: ApiProject) => {
             const budget = Number(project.budget);
             const spent  = Number(project.total_spent);
             const pct    = budget > 0 ? (spent / budget) * 100 : 0;
-            const tone: "safe" | "warning" | "danger" =
-              pct >= 100 ? "danger" : pct >= 80 ? "warning" : "safe";
+            const tone   = getProjectTone(pct);
 
             return (
               <Link
@@ -164,13 +194,13 @@ export default async function ProjectsPage() {
                       </div>
                       <div>
                         <div className="text-[10px] text-zinc-400 uppercase font-medium">Gastado</div>
-                        <div className={`mt-0.5 font-semibold ${tone === "danger" ? "text-rose-600" : tone === "warning" ? "text-amber-600" : "text-zinc-700"}`}>
+                        <div className={`mt-0.5 font-semibold ${getSpentColorClass(tone)}`}>
                           {formatCOP(spent)}
                         </div>
                       </div>
                       <div>
                         <div className="text-[10px] text-zinc-400 uppercase font-medium">Ejecución</div>
-                        <div className={`mt-0.5 font-bold ${tone === "danger" ? "text-rose-600" : tone === "warning" ? "text-amber-600" : "text-emerald-600"}`}>
+                        <div className={`mt-0.5 font-bold ${getPctColorClass(tone)}`}>
                           {Math.round(pct)}%
                         </div>
                       </div>
