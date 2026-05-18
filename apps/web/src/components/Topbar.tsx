@@ -24,8 +24,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           </svg>
         </button>
 
-        {/* Logo  */}
-        <div className="flex items-center gap-2">
+        {/* Logo solo visible en móvil (el sidebar está oculto) */}
+        <div className="flex items-center gap-2 md:hidden">
           <div className="grid h-7 w-7 place-items-center rounded-lg bg-blue-600 text-xs font-bold text-white shrink-0">
             M
           </div>
@@ -37,6 +37,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         {/* ── Acciones ── */}
         <div className="flex items-center gap-2 ml-auto md:ml-0">
+          <button className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50 whitespace-nowrap">
+            Q1 2026
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-500">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
           <Link
             href="/projects/new"
