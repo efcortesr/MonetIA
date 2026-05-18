@@ -132,15 +132,7 @@ export default async function ProjectsPage() {
             {subtitleText}
           </div>
         </div>
-        {result.error === null && (
-          <Link
-            id="new-project-btn"
-            href="/projects/new"
-            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
-          >
-            + Nuevo proyecto
-          </Link>
-        )}
+
       </div>
 
       {/* ── Error ── */}
