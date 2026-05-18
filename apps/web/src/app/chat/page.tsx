@@ -149,7 +149,7 @@ function getCookieValue(name: string) {
 
 async function ensureCsrfCookie(apiBase: string) {
   if (csrfReady) return;
-  await fetch(`${apiBase}/chat/`, {
+  await fetch(`${apiBase}/chat/csrf/`, {
     method: "GET",
     credentials: "include",
   });
