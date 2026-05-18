@@ -3,10 +3,10 @@ import { ReactNode } from "react";
 export function Card({
   children,
   className = "",
-}: {
+}: Readonly<{
   children: ReactNode;
   className?: string;
-}) {
+}>) {
   // Base classes that can be extended or partially overridden
   const baseClasses = "rounded-2xl border shadow-sm";
   
@@ -25,11 +25,11 @@ export function CardHeader({
   title,
   subtitle,
   right,
-}: {
+}: Readonly<{
   title: string;
   subtitle?: string;
   right?: ReactNode;
-}) {
+}>) {
   return (
     <div className="flex items-start justify-between gap-4 p-5">
       <div>
@@ -46,9 +46,9 @@ export function CardHeader({
 export function CardBody({
   children,
   className = "",
-}: {
+}: Readonly<{
   children: ReactNode;
   className?: string;
-}) {
+}>) {
   return <div className={`p-5 pt-0 ${className}`}>{children}</div>;
 }

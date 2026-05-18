@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { AppShell } from "@/components/AppShell";
 
-export function ConditionalShell({ children }: { children: ReactNode }) {
+export function ConditionalShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
   const noShellPaths = ["/login", "/register"];
 

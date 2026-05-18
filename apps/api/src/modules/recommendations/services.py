@@ -129,20 +129,7 @@ class GeminiRecommendationService:
                 "priority": "Media",
             })
 
-        # Ensure at least 2 recommendations if we have data
-        if len(results) < 2 and (metrics["expenses_count"] > 0 or metrics["roles_count"] > 0):
-            if metrics["expenses_count"] > 0 and not any("categoría" in r["body"].lower() for r in results):
-                results.append({
-                    "title": "Revisar pequeñas transacciones",
-                    "body": "Revisar compras frecuentes o pequeños gastos repetitivos puede ayudar a liberar margen del presupuesto.",
-                    "priority": "Baja",
-                })
-            if metrics["roles_count"] > 0 and not any("equipo" in r["body"].lower() for r in results):
-                results.append({
-                    "title": "Optimización del equipo",
-                    "body": "Asegúrate de que la distribución de roles esté alineada con las necesidades técnicas actuales.",
-                    "priority": "Baja",
-                })
+        self._pad_fallback_recommendations(results, metrics)
 
         # Ultimate fallback if no data matches
         if not results:
@@ -154,6 +141,23 @@ class GeminiRecommendationService:
 
         # Save to DB
         return self._save_and_format_recommendations(project, results)
+
+    def _pad_fallback_recommendations(self, results, metrics):
+        """Pads recommendations to ensure at least 2 are returned if data exists."""
+        if len(results) >= 2 or (metrics["expenses_count"] == 0 and metrics["roles_count"] == 0):
+            return
+        if metrics["expenses_count"] > 0 and not any("categoría" in r["body"].lower() for r in results):
+            results.append({
+                "title": "Revisar pequeñas transacciones",
+                "body": "Revisar compras frecuentes o pequeños gastos repetitivos puede ayudar a liberar margen del presupuesto.",
+                "priority": "Baja",
+            })
+        if metrics["roles_count"] > 0 and not any("equipo" in r["body"].lower() for r in results):
+            results.append({
+                "title": "Optimización del equipo",
+                "body": "Asegúrate de que la distribución de roles esté alineada con las necesidades técnicas actuales.",
+                "priority": "Baja",
+            })
 
     def _save_and_format_recommendations(self, project, results_list):
         """Helper to clear old recommendations, save new ones, and format output."""
@@ -262,6 +266,6 @@ class GeminiRecommendationService:
                     "Gemini devolvió un JSON vacío o inválido. Usando fallback.")
                 return self._get_fallback_recommendations(project, metrics)
 
-        except Exception as e:
-            logger.error(f"Error al llamar a Gemini: {str(e)}")
+        except Exception:
+            logger.exception("Error al llamar a Gemini")
             return self._get_fallback_recommendations(project, metrics)

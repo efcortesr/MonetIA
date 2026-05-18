@@ -6,7 +6,7 @@ interface TopbarProps {
   onMenuClick?: () => void;
 }
 
-export function Topbar({ onMenuClick }: TopbarProps) {
+export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
   return (
     <header className="sticky top-0 z-10 w-full bg-white border-b border-zinc-100">
       <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-6">
