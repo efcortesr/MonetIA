@@ -11,10 +11,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     <header className="sticky top-0 z-10 w-full bg-white border-b border-zinc-100">
       <div className="flex h-14 items-center justify-between gap-2 px-3 sm:px-6">
 
-        {/* ── Hamburger (solo móvil) ── */}
+        {/* ── Hamburger ── */}
         <button
           onClick={onMenuClick}
-          className="md:hidden flex-shrink-0 rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+          className="flex-shrink-0 rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
           aria-label="Abrir menú"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
