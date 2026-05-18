@@ -21,10 +21,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     token = getCookie("token");
   } else {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { cookies } = require("next/headers");
       const cookieStore = await cookies();
       token = cookieStore.get("token")?.value;
-    } catch (e) {
+    } catch {
       // fail silently when not in request context
     }
   }

@@ -18,6 +18,10 @@ function formatCOP(value: number) {
   return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
+function getCurrentTimestamp() {
+  return Date.now();
+}
+
 function Kpi({
   title,
   value,
@@ -114,7 +118,7 @@ export default async function ProjectDetailsPage({
     const startObj = new Date(project.start_date).getTime();
     const endObj = new Date(project.end_date).getTime();
     if (endObj <= startObj) return 0;
-    const nowTs = Date.now();
+    const nowTs = getCurrentTimestamp();
     return Math.min(100, Math.max(0, ((nowTs - startObj) / (endObj - startObj)) * 100));
   })();
   const consumptionTone = consumedPct > timelinePct + 15 ? "danger" : "neutral";
