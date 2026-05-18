@@ -22,11 +22,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // ── CRÍTICO: estas tres líneas son las que corrigen el zoom ──
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: "#ffffff",
+  // NO poner maximumScale ni userScalable: false
+  // maximumScale: 1 rompe accesibilidad y causa el problema de zoom
 };
 
 export default function RootLayout({
@@ -39,6 +39,11 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        {/* Viewport explícito como meta tag de respaldo para máxima compatibilidad */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0"
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="true" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
