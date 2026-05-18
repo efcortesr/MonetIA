@@ -11,86 +11,30 @@ function NavIcon({
 }) {
   if (name === "dashboard") {
     return (
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M4 4h7v7H4V4Zm9 0h7v4h-7V4ZM4 13h7v7H4v-7Zm9 7v-10h7v10h-7Z"
-          fill="currentColor"
-        />
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 4h7v7H4V4Zm9 0h7v4h-7V4ZM4 13h7v7H4v-7Zm9 7v-10h7v10h-7Z" fill="currentColor" />
       </svg>
     );
   }
-
   if (name === "projects") {
     return (
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M4 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
       </svg>
     );
   }
-
   if (name === "predictions") {
     return (
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M5 19V5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M7 16l4-4 3 3 5-6"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 19V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M7 16l4-4 3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
-
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M12 7v6l4 2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 7v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -99,28 +43,45 @@ const nav = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" as const },
   { href: "/projects", label: "Proyectos", icon: "projects" as const },
   { href: "/predictions", label: "AI Insights", icon: "predictions" as const },
-  {
-    href: "/recommendations",
-    label: "Recomendaciones",
-    icon: "recommendations" as const,
-  },
+  { href: "/recommendations", label: "Recomendaciones", icon: "recommendations" as const },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col bg-[#0b1220] text-zinc-100 md:flex">
-      <div className="flex items-center gap-3 px-5 py-5">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-sm font-semibold text-white">
-          M
+    <aside className="flex h-full w-64 flex-col bg-[#0b1220] text-zinc-100">
+      {/* Header with close button (mobile only) */}
+      <div className="flex items-center justify-between px-5 py-5">
+        <div className="flex items-center gap-3">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-sm font-semibold text-white">
+            M
+          </div>
+          <div>
+            <div className="text-sm font-semibold leading-5">MonetIA</div>
+            <div className="text-xs text-zinc-300/80">Financia tus proyectos</div>
+          </div>
         </div>
-        <div>
-          <div className="text-sm font-semibold leading-5">MonetIA</div>
-          <div className="text-xs text-zinc-300/80">Global Dashboard</div>
-        </div>
+        {/* Close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+            aria-label="Cerrar menú"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
       </div>
 
+      {/* Nav links */}
       <nav className="flex flex-1 flex-col gap-1 px-3 py-2">
         {nav.map((item) => {
           const active =
@@ -131,17 +92,14 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
                   ? "bg-blue-600 text-white"
                   : "text-zinc-200 hover:bg-white/5 hover:text-white"
               }`}
             >
-              <span
-                className={
-                  active ? "text-white" : "text-zinc-400"
-                }
-              >
+              <span className={active ? "text-white" : "text-zinc-400"}>
                 <NavIcon name={item.icon} />
               </span>
               {item.label}
@@ -150,26 +108,16 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* Footer */}
       <div className="mt-auto px-4 pb-4 space-y-2">
         <div className="rounded-xl bg-white/5 px-3 py-3">
           <div className="text-xs text-zinc-300">IA Activa</div>
         </div>
         <button
-          onClick={async () => {
-            await logoutAction();
-          }}
+          onClick={async () => { await logoutAction(); }}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-rose-400 hover:bg-white/5 transition-colors cursor-pointer"
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />

@@ -583,12 +583,24 @@ class ProjectRolesViewSet(viewsets.ModelViewSet):
     queryset = ProjectRole.objects.select_related(
         "project").all().order_by("id")
     serializer_class = ProjectRoleSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_authenticated:
+            return queryset.filter(project__owner=self.request.user)
+        return queryset
 
 
 class ExpensesViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.select_related(
         "project", "category", "user").all().order_by("id")
     serializer_class = ExpenseSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_authenticated:
+            return queryset.filter(project__owner=self.request.user)
+        return queryset
 
     def _save_and_sync(self, serializer):
         expense = serializer.save()

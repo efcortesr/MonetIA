@@ -306,7 +306,7 @@ function CategorySpendingChart({ categoryData }: Readonly<{ categoryData: Catego
               </div>
             </div>
             <div className="w-16 text-xs font-semibold text-zinc-900 text-right">
-              {formatCOP(cat.amount)}
+              {Math.round(percentage)}%
             </div>
           </div>
         );
