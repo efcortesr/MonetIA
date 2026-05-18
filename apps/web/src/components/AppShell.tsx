@@ -19,10 +19,10 @@ export function AppShell({ children }: { children: ReactNode }) {
      */
     <div className="min-h-screen w-full bg-[#f4f7fb] text-zinc-900">
 
-      {/* Overlay oscuro cuando el sidebar está abierto en móvil */}
+      {/* Overlay oscuro cuando el sidebar está abierto */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-40 bg-black/50"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
@@ -31,15 +31,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen w-full">
 
         {/* ── Sidebar ──
-            Desktop (md+): ocupa w-64 en el flujo normal, siempre visible.
-            Mobile (<md):  fixed, fuera del flujo, desliza con transform.
-            shrink-0 evita que flex comprima el sidebar en desktop.
+            Desplegable en todos los tamaños: fixed, desliza con transform.
+            shrink-0 evita que flex comprima el sidebar.
         */}
         <aside
           className={`
             fixed inset-y-0 left-0 z-50 w-64 shrink-0
             transform transition-transform duration-300 ease-in-out
-            md:relative md:translate-x-0
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
         >
