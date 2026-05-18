@@ -1,6 +1,6 @@
 import { clampPercent } from "@/lib/mock";
 
-export function Progress({ value }: { value: number }) {
+export function Progress({ value }: Readonly<{ value: number }>) {
   const pct = clampPercent(value);
   return (
     <div className="h-2 w-full rounded-full bg-zinc-100">

@@ -68,7 +68,7 @@ function ProjectionChart({
 
       {labels.map((_, i) => (
         <line
-          key={i}
+          key={`grid-line-${i}`}
           x1={toX(i)}
           x2={toX(i)}
           y1={padY}

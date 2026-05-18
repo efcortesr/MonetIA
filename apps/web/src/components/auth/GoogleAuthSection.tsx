@@ -17,21 +17,21 @@ interface GoogleAuthSectionProps {
   disabled?: boolean;
 }
 
-export default function GoogleAuthSection({ buttonText, actionType, disabled }: GoogleAuthSectionProps) {
+export default function GoogleAuthSection({ buttonText, actionType, disabled }: Readonly<GoogleAuthSectionProps>) {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [isGooglePending, setIsGooglePending] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
   const initializeGoogleSignIn = () => {
-    if (typeof window !== "undefined" && window.google) {
+    if (typeof globalThis.window !== "undefined" && globalThis.window.google) {
       try {
-        window.google.accounts.id.initialize({
+        globalThis.window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "996228663829-0ueokf900fbcoj8e6adpuig16tersr7n.apps.googleusercontent.com",
           callback: handleGoogleCredentialResponse,
         });
         const btnParent = document.getElementById("google-signin-div");
         if (btnParent) {
-          window.google.accounts.id.renderButton(btnParent, {
+          globalThis.window.google.accounts.id.renderButton(btnParent, {
             theme: "outline",
             size: "large",
             width: btnParent.clientWidth || 380,
@@ -46,7 +46,7 @@ export default function GoogleAuthSection({ buttonText, actionType, disabled }: 
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.google) {
+    if (typeof globalThis.window !== "undefined" && globalThis.window.google) {
       initializeGoogleSignIn();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

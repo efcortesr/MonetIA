@@ -11,10 +11,10 @@ export type BadgeTone =
 export function Badge({
   children,
   tone = "default",
-}: {
+}: Readonly<{
   children: ReactNode;
   tone?: BadgeTone;
-}) {
+}>) {
   const map: Record<string, string> = {
     default: "bg-zinc-100 text-zinc-700",
     muted: "bg-zinc-50 text-zinc-500",

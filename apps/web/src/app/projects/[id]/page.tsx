@@ -27,20 +27,20 @@ function Kpi({
   value,
   sub,
   tone,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   sub: string;
   tone: "neutral" | "warning" | "danger" | "success";
-}) {
-  const subCls =
-    tone === "danger"
-      ? "text-rose-600"
-      : tone === "warning"
-        ? "text-amber-600"
-        : tone === "success"
-          ? "text-emerald-600"
-          : "text-zinc-500";
+}>) {
+  let subCls = "text-zinc-500";
+  if (tone === "danger") {
+    subCls = "text-rose-600";
+  } else if (tone === "warning") {
+    subCls = "text-amber-600";
+  } else if (tone === "success") {
+    subCls = "text-emerald-600";
+  }
 
   return (
     <Card className="p-0">
@@ -57,9 +57,9 @@ function Kpi({
 
 export default async function ProjectDetailsPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ id: string }>;
-}) {
+}>) {
   const { id } = await params;
 
   const [project, roles, categories, alerts] = await Promise.all([

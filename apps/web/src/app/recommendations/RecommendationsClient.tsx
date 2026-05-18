@@ -7,13 +7,13 @@ import { approveRecommendation, discardRecommendation, type ApiRecommendation } 
 
 type Priority = "Alta" | "Media" | "Baja";
 
-function PriorityPill({ p }: { p: Priority }) {
+function PriorityPill({ p }: Readonly<{ p: Priority }>) {
   if (p === "Alta") return <Badge tone="danger">Alta</Badge>;
   if (p === "Media") return <Badge tone="warning">Media</Badge>;
   return <Badge tone="muted">Baja</Badge>;
 }
 
-export default function RecommendationsClient({ initialItems }: { initialItems: ApiRecommendation[] }) {
+export default function RecommendationsClient({ initialItems }: Readonly<{ initialItems: ApiRecommendation[] }>) {
   const [items, setItems] = useState<ApiRecommendation[]>(initialItems);
   const [activeTab, setActiveTab] = useState<"Todas" | "Alta" | "Media" | "Baja">("Todas");
   
@@ -112,7 +112,7 @@ export default function RecommendationsClient({ initialItems }: { initialItems: 
               }`}
             >
               {t}
-              {items.filter(r => t === "Todas" || r.priority === t).length > 0 && (
+              {items.some(r => t === "Todas" || r.priority === t) && (
                 <span className={`ml-1.5 rounded-full px-1.5 py-0.25 text-[10px] ${
                   isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-600"
                 }`}>
