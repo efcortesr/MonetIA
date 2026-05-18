@@ -10,6 +10,18 @@ function getApiBaseUrl() {
   return url.replace("localhost", "127.0.0.1");
 }
 
+async function setAuthCookies(data: { token: string; user: { name: string; email: string } }) {
+  const cookieStore = await cookies();
+  cookieStore.set("token", data.token, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+  cookieStore.set("userName", data.user.name, { path: "/" });
+  cookieStore.set("userEmail", data.user.email, { path: "/" });
+}
+
 export async function loginAction(prevState: unknown, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -33,15 +45,7 @@ export async function loginAction(prevState: unknown, formData: FormData) {
       return { error: data.error || "Credenciales incorrectas" };
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set("token", data.token, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-    cookieStore.set("userName", data.user.name, { path: "/" });
-    cookieStore.set("userEmail", data.user.email, { path: "/" });
+    await setAuthCookies(data);
   } catch (error) {
     console.error("Login action error:", error);
     return { error: "No se pudo conectar con el servidor de autenticación." };
@@ -74,15 +78,7 @@ export async function registerAction(prevState: unknown, formData: FormData) {
       return { error: data.error || "No se pudo realizar el registro." };
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set("token", data.token, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-    cookieStore.set("userName", data.user.name, { path: "/" });
-    cookieStore.set("userEmail", data.user.email, { path: "/" });
+    await setAuthCookies(data);
   } catch (error) {
     console.error("Register action error:", error);
     return { error: "No se pudo conectar con el servidor de autenticación." };
@@ -121,15 +117,7 @@ export async function googleAuthAction(email?: string, name?: string, credential
       return { error: data.error || "No se pudo autenticar con Google." };
     }
 
-    const cookieStore = await cookies();
-    cookieStore.set("token", data.token, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-    cookieStore.set("userName", data.user.name, { path: "/" });
-    cookieStore.set("userEmail", data.user.email, { path: "/" });
+    await setAuthCookies(data);
   } catch (error) {
     console.error("Google auth action error:", error);
     return { error: "No se pudo conectar con el servidor de autenticación." };
