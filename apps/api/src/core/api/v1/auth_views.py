@@ -4,11 +4,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.authtoken.models import Token
+from django.views.decorators.http import require_POST
 
 User = get_user_model()
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@require_POST
 def register_view(request):
     data = request.data
     first_name = data.get('name') or data.get('first_name')
@@ -43,6 +45,7 @@ def register_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@require_POST
 def login_view(request):
     data = request.data
     email = data.get('email')
@@ -70,6 +73,7 @@ def login_view(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@require_POST
 def google_auth_view(request):
     data = request.data
     credential = data.get('credential')
