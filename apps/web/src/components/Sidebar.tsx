@@ -55,7 +55,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   return (
     <aside className="flex h-full w-64 flex-col bg-[#0b1220] text-zinc-100">
-      {/* Header with close button (mobile only) */}
+      {/* Header*/}
       <div className="flex items-center justify-between px-5 py-5">
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-sm font-semibold text-white">
