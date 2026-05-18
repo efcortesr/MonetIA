@@ -66,11 +66,11 @@ export function Sidebar({ onClose }: SidebarProps) {
             <div className="text-xs text-zinc-300/80">Financia tus proyectos</div>
           </div>
         </div>
-        {/* Close button — only visible on mobile */}
+        {/* Close button */}
         {onClose && (
           <button
             onClick={onClose}
-            className="md:hidden rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Cerrar menú"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
