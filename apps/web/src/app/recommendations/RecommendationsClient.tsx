@@ -48,7 +48,7 @@ export default function RecommendationsClient({ initialItems }: { initialItems: 
     try {
       await discardRecommendation(id);
       setItems(prev => prev.filter(item => item.id !== id));
-      showToast(`Recomendación descartada.`);
+      showToast(`Recomendación "${title}" descartada.`);
     } catch (err) {
       console.error(err);
       alert("Error al descartar la recomendación");
@@ -129,7 +129,7 @@ export default function RecommendationsClient({ initialItems }: { initialItems: 
           <div className="text-4xl mb-4">✨</div>
           <div className="text-lg font-semibold text-zinc-800">Todo en orden</div>
           <div className="mt-1 text-xs max-w-sm text-zinc-500 leading-relaxed">
-            No tienes recomendaciones pendientes en la categoría <strong className="text-blue-600">"{activeTab}"</strong>. 
+            No tienes recomendaciones pendientes en la categoría <strong className="text-blue-600">&ldquo;{activeTab}&rdquo;</strong>. 
             Registra más gastos o modifica roles de equipo para recibir nuevos análisis predictivos.
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function RecommendationsClient({ initialItems }: { initialItems: 
               <div>
                 <h4 className="font-semibold text-zinc-800 uppercase tracking-wider text-[10px] mb-1">Acción del Proyecto</h4>
                 <p className="text-zinc-500">
-                  Al presionar <strong>"Aprobar"</strong>, esta recomendación se guardará de manera permanente en el detalle del proyecto correspondiente para el seguimiento del equipo directivo.
+                  Al presionar <strong>&ldquo;Aprobar&rdquo;</strong>, esta recomendación se guardará de manera permanente en el detalle del proyecto correspondiente para el seguimiento del equipo directivo.
                 </p>
               </div>
 

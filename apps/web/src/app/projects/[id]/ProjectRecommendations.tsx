@@ -85,7 +85,7 @@ export default function ProjectRecommendations({ projectId }: Readonly<{ project
       await discardRecommendation(id);
       // Remove from list
       setRecommendations(prev => prev.filter(r => r.id !== id));
-      setSuccessMsg("Recomendación descartada.");
+      setSuccessMsg(`Recomendación "${title}" descartada.`);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error(err);

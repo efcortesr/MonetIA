@@ -53,6 +53,12 @@ function getTime() {
   return new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 }
 
+let messageIdCounter = 0;
+function getUniqueId() {
+  messageIdCounter += 1;
+  return Date.now() + messageIdCounter;
+}
+
 function buildSystemPrompt(ctx: FinancialContext): string {
   const totalBudget = ctx.projects.reduce((s, p) => s + Number(p.budget), 0);
   const totalSpent = ctx.projects.reduce((s, p) => s + Number(p.total_spent), 0);
@@ -220,6 +226,7 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContext().catch(() => {
       // context load failure is handled inside fetchContext
     });
@@ -254,7 +261,7 @@ export default function ChatPage() {
     setInput("");
     setIsLoading(true);
 
-    const userMsg: Message = { id: Date.now(), role: "user", text: msg, time: getTime() };
+    const userMsg: Message = { id: getUniqueId(), role: "user", text: msg, time: getTime() };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
@@ -263,7 +270,7 @@ export default function ChatPage() {
       const reply = await callGemini(API_BASE, msg);
       const pills = extractPills(msg, context);
       const botMsg: Message = {
-        id: Date.now() + 1,
+        id: getUniqueId(),
         role: "bot",
         text: reply,
         time: getTime(),
@@ -275,7 +282,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now() + 1,
+          id: getUniqueId(),
           role: "bot",
           text: `No pude procesar tu consulta. Verifica que el backend esté activo.\n\nError: ${errMsg}`,
           time: getTime(),

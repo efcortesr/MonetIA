@@ -10,7 +10,7 @@ function getApiBaseUrl() {
   return url.replace("localhost", "127.0.0.1");
 }
 
-export async function loginAction(prevState: any, formData: FormData) {
+export async function loginAction(prevState: unknown, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
@@ -50,7 +50,7 @@ export async function loginAction(prevState: any, formData: FormData) {
   redirect("/dashboard");
 }
 
-export async function registerAction(prevState: any, formData: FormData) {
+export async function registerAction(prevState: unknown, formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;

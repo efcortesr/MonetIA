@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useActionState, startTransition, useState, useEffect } from "react";
 import Link from "next/link";
@@ -34,8 +35,8 @@ export default function LoginPage() {
             shape: "rectangular",
           });
         }
-      } catch (err) {
-        console.error("Error initializing Google Identity Services:", err);
+      } catch {
+        console.error("Error initializing Google Identity Services:");
       }
     }
   };
@@ -45,6 +46,7 @@ export default function LoginPage() {
     if (typeof window !== "undefined" && window.google) {
       initializeGoogleSignIn();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGoogleCredentialResponse = async (response: any) => {
@@ -55,7 +57,7 @@ export default function LoginPage() {
       if (res?.error) {
         setGoogleError(res.error);
       }
-    } catch (err) {
+    } catch {
       setGoogleError("Error al autenticar con Google.");
     } finally {
       setIsGooglePending(false);
@@ -79,7 +81,7 @@ export default function LoginPage() {
       if (res?.error) {
         setGoogleError(res.error);
       }
-    } catch (err) {
+    } catch {
       setGoogleError("Error al iniciar sesión con Google.");
     } finally {
       setIsGooglePending(false);
