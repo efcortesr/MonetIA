@@ -10,8 +10,8 @@ from .views import (
     PredictionsViewSet,
     RecommendationsViewSet,
 )
-from modules.chat.views import chat_view  # ← sin "MonetIA.apps.api.src."
-from .auth_views import register_view, login_view, google_auth_view
+from modules.chat.views import ChatView
+from .auth_views import RegisterView, LoginView, GoogleAuthView
 
 router = DefaultRouter()
 router.register(r"projects",        ProjectsViewSet,
@@ -29,8 +29,9 @@ router.register(r"recommendations", RecommendationsViewSet,
                 basename="recommendations")
 
 urlpatterns = router.urls + [
-    path("chat/", chat_view, name="chat"),
-    path("auth/register/", register_view, name="register"),
-    path("auth/login/", login_view, name="login"),
-    path("auth/google/", google_auth_view, name="google-auth"),
+    path("chat/", ChatView.as_view(), name="chat"),
+    path("auth/register/", RegisterView.as_view(), name="register"),
+    path("auth/login/", LoginView.as_view(), name="login"),
+    path("auth/google/", GoogleAuthView.as_view(), name="google-auth"),
 ]
+
