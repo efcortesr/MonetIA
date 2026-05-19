@@ -15,6 +15,7 @@ class ProjectManagementTests(APITestCase):
         self.user = get_user_model().objects.create_user(
             username="owner", password=self.user_password)
         self.category = Category.objects.create(name="Infra", color="#000")
+        self.client.force_authenticate(user=self.user)
 
     def test_create_and_update_project_budget(self):
         payload = {

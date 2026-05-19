@@ -102,20 +102,20 @@ class FinancialChatService:
         user_name = ""
         if user and user.is_authenticated:
             user_name = user.get_full_name() or user.first_name or user.username
-        greeting = f"Estás ayudando a {user_name}." if user_name else ""
+        greeting = f"Est\u00e1s ayudando a {user_name}." if user_name else ""
         return f"""Eres un asistente financiero experto integrado en MonetIA. {greeting}
 
 DATOS ACTUALES DEL SISTEMA:
 {context}
 
 INSTRUCCIONES:
-- Responde SIEMPRE en español, de forma clara y concisa.
+- Responde SIEMPRE en espa\u00f1ol, de forma clara y concisa.
 - Dirige tu respuesta al usuario por su nombre cuando sea natural hacerlo.
 - Usa formato COP con puntos de miles para los montos.
 - Si detectas consumo mayor al 80%, menciona el riesgo.
-- Máximo 4 oraciones salvo que el usuario pida más detalle.
-- NO inventes datos que no estén en el contexto anterior.
-- Si no hay datos, indícalo amablemente.
+- M\u00e1ximo 4 oraciones salvo que el usuario pida m\u00e1s detalle.
+- NO inventes datos que no est\u00e9n en el contexto anterior.
+- Si no hay datos, ind\u00edcalo amablemente.
 
 PREGUNTA DEL USUARIO: {question}"""
 
@@ -124,20 +124,20 @@ PREGUNTA DEL USUARIO: {question}"""
         question_lower = question.lower()
 
         if "gast" in question_lower or "presupuesto" in question_lower:
-            return "Según los datos del sistema, tienes un presupuesto total definido con gastos registrados. El consumo está dentro de los límites aceptables."
+            return "Seg\u00fan los datos del sistema, tienes un presupuesto total definido con gastos registrados. El consumo est\u00e1 dentro de los l\u00edmites aceptables."
         elif "riesgo" in question_lower or "alerta" in question_lower:
-            return "Actualmente no hay alertas críticas. Todos los proyectos están dentro de sus límites de presupuesto."
+            return "Actualmente no hay alertas cr\u00edticas. Todos los proyectos est\u00e1n dentro de sus l\u00edmites de presupuesto."
         elif "proyecto" in question_lower:
-            return "Tienes varios proyectos activos siendo ejecutados dentro de los parámetros presupuestales definidos."
+            return "Tienes varios proyectos activos siendo ejecutados dentro de los par\u00e1metros presupuestales definidos."
         else:
-            return "He procesado tu consulta. ¿Hay algo más específico sobre tu información financiera que desees conocer?"
+            return "He procesado tu consulta. \u00bfHay algo m\u00e1s espec\u00edfico sobre tu informaci\u00f3n financiera que desees conocer?"
 
     def answer(self, question: str, project_id=None, user=None) -> str:
 
         if not question or not question.strip():
-            return "Por favor, ingresa una pregunta válida."
+            return "Por favor, ingresa una pregunta v\u00e1lida."
 
-        # Usar modo mock si está activado
+        # Usar modo mock si est\u00e1 activado
         if self.use_mock:
             logger.info(f"[MOCK MODE] Respondiendo a: {question}")
             return self._mock_response(question)
@@ -147,9 +147,9 @@ PREGUNTA DEL USUARIO: {question}"""
         logger.info(f"[GEMINI MODE] Client: {self.client}")
 
         if not self.client:
-            logger.error("Cliente Gemini no está configurado")
+            logger.error("Cliente Gemini no est\u00e1 configurado")
             return (
-                "El motor de IA no está configurado. "
+                "El motor de IA no est\u00e1 configurado. "
                 "Agrega GEMINI_API_KEY al archivo .env del backend."
             )
 
@@ -173,6 +173,6 @@ PREGUNTA DEL USUARIO: {question}"""
         except Exception:
             logger.exception("Error Gemini chat")
             return (
-                "Ocurrió un error al procesar tu consulta. "
+                "Ocurri\u00f3 un error al procesar tu consulta. "
                 "Intenta de nuevo en unos momentos."
             )

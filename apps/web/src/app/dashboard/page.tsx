@@ -19,70 +19,79 @@ function formatCOP(value: number) {
   return `COP ${formatted}`;
 }
 
-function MetricIcon({ kind }: { kind: "budget" | "spend" | "ai" }) {
-  const base =
-    kind === "budget"
-      ? "bg-blue-50 text-blue-600"
-      : kind === "spend"
-        ? "bg-amber-50 text-amber-600"
-        : "bg-rose-50 text-rose-600";
+function MetricIcon({ kind }: Readonly<{ kind: "budget" | "spend" | "ai" }>) {
+  let base = "bg-rose-50 text-rose-600";
+  if (kind === "budget") {
+    base = "bg-blue-50 text-blue-600";
+  } else if (kind === "spend") {
+    base = "bg-amber-50 text-amber-600";
+  }
+
+  let svgContent = null;
+  if (kind === "budget") {
+    svgContent = (
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  } else if (kind === "spend") {
+    svgContent = (
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M12 2L2 7l10 5 10-5-10-5z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path
+          d="m2 17 10 5 10-5M2 12l10 5 10-5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  } else {
+    svgContent = (
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
 
   return (
     <div className={`grid h-8 w-8 place-items-center rounded-full ${base}`}>
-      {kind === "budget" ? (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : kind === "spend" ? (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M12 2L2 7l10 5 10-5-10-5z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <path
-            d="m2 17 10 5 10-5M2 12l10 5 10-5"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
+      {svgContent}
     </div>
   );
 }
@@ -100,14 +109,14 @@ function Stat({
   deltaTone: "success" | "warning" | "danger" | "muted";
   icon: "budget" | "spend" | "ai";
 }>) {
-  const deltaClass =
-    deltaTone === "success"
-      ? "text-emerald-600"
-      : deltaTone === "warning"
-        ? "text-amber-600"
-        : deltaTone === "danger"
-          ? "text-rose-600"
-          : "text-zinc-500";
+  let deltaClass = "text-zinc-500";
+  if (deltaTone === "success") {
+    deltaClass = "text-emerald-600";
+  } else if (deltaTone === "warning") {
+    deltaClass = "text-amber-600";
+  } else if (deltaTone === "danger") {
+    deltaClass = "text-rose-600";
+  }
 
   return (
     <Card className="p-0">
@@ -206,7 +215,7 @@ function BurnRateChart({ projects }: Readonly<{ projects: ApiProject[] }>) {
         />
         {monthlySpending.map((v, i) => (
           <circle
-            key={i}
+            key={`actual-${i}`}
             cx={toX(i)}
             cy={toY(v)}
             r="4"
@@ -226,7 +235,7 @@ function BurnRateChart({ projects }: Readonly<{ projects: ApiProject[] }>) {
         />
         {projectedSpending.map((v, i) => (
           <circle
-            key={i}
+            key={`proj-${i}`}
             cx={toX(projOffset + i)}
             cy={toY(v)}
             r="3"
@@ -236,10 +245,9 @@ function BurnRateChart({ projects }: Readonly<{ projects: ApiProject[] }>) {
           />
         ))}
 
-        {/* X-axis labels */}
         {displayMonths.map((m, i) => (
           <text
-            key={i}
+            key={`lbl-${m}-${i}`}
             x={toX(i)}
             y={h - 8}
             className="fill-[11px] fill-zinc-500 text-center"
@@ -306,7 +314,7 @@ function CategorySpendingChart({ categoryData }: Readonly<{ categoryData: Catego
               </div>
             </div>
             <div className="w-16 text-xs font-semibold text-zinc-900 text-right">
-              {formatCOP(cat.amount)}
+              {Math.round(percentage)}%
             </div>
           </div>
         );

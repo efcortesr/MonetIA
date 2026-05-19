@@ -183,28 +183,8 @@ def _render_pdf(project, data):
     return response
 
 
-def _render_excel(project, data):
-    try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    except ImportError:
-        return Response({"error": "openpyxl no está instalado."}, status=500)
-
-    BLUE = "1E40AF"
-    ALT_ROW = "F0F4FF"
-    header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
-    header_fill = PatternFill("solid", fgColor=BLUE)
-    normal_font = Font(name="Calibri", size=10)
-    label_font = Font(name="Calibri", bold=True, size=10)
-    center = Alignment(horizontal="center", vertical="center")
-    right_align = Alignment(horizontal="right", vertical="center")
-    thin_border = Border(
-        left=Side(style="thin", color="D1D5DB"), right=Side(style="thin", color="D1D5DB"),
-        top=Side(style="thin", color="D1D5DB"), bottom=Side(style="thin", color="D1D5DB"),
-    )
-
-    wb = Workbook()
-    ws1 = wb.active
+def _fill_excel_summary(ws1, project, data, header_font, header_fill, normal_font, center, right_align, thin_border, BLUE, ALT_ROW):
+    from openpyxl.styles import Font, PatternFill
     ws1.title = "Resumen"
     ws1.column_dimensions["A"].width = 30
     ws1.column_dimensions["B"].width = 22
@@ -248,6 +228,9 @@ def _render_excel(project, data):
                 c.fill = fill
         c2.alignment = right_align
 
+
+def _fill_excel_expenses(wb, data, header_font, header_fill, normal_font, label_font, center, right_align, thin_border, ALT_ROW):
+    from openpyxl.styles import PatternFill, Font
     ws2 = wb.create_sheet("Gastos")
     ws2.column_dimensions["A"].width = 14
     ws2.column_dimensions["B"].width = 36
@@ -282,27 +265,62 @@ def _render_excel(project, data):
     tc.alignment = right_align
     tc.border = thin_border
 
+
+def _fill_excel_roles(wb, data, header_font, header_fill, normal_font, center, right_align, thin_border, ALT_ROW):
+    from openpyxl.styles import PatternFill
+    ws3 = wb.create_sheet("Personal")
+    ws3.column_dimensions["A"].width = 30
+    ws3.column_dimensions["B"].width = 22
+    for col, h in enumerate(["Rol", "Salario mensual (COP)"], start=1):
+        cell = ws3.cell(row=1, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = thin_border
+    for row_idx, role in enumerate(data["roles"], start=2):
+        fill = PatternFill("solid", fgColor=ALT_ROW) if row_idx % 2 == 0 else None
+        c1 = ws3.cell(row=row_idx, column=1, value=role.name)
+        c2 = ws3.cell(row=row_idx, column=2, value=float(role.salary))
+        for c in (c1, c2):
+            c.font = normal_font
+            c.border = thin_border
+            if fill:
+                c.fill = fill
+        c2.number_format = NUMBER_FORMAT
+        c2.alignment = right_align
+
+
+def _render_excel(project, data):
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    except ImportError:
+        return Response({"error": "openpyxl no está instalado."}, status=500)
+
+    BLUE = "1E40AF"
+    ALT_ROW = "F0F4FF"
+    header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill("solid", fgColor=BLUE)
+    normal_font = Font(name="Calibri", size=10)
+    label_font = Font(name="Calibri", bold=True, size=10)
+    center = Alignment(horizontal="center", vertical="center")
+    right_align = Alignment(horizontal="right", vertical="center")
+    thin_border = Border(
+        left=Side(style="thin", color="D1D5DB"), right=Side(style="thin", color="D1D5DB"),
+        top=Side(style="thin", color="D1D5DB"), bottom=Side(style="thin", color="D1D5DB"),
+    )
+
+    wb = Workbook()
+    
+    # Fill Executive Summary sheet (Resumen)
+    _fill_excel_summary(wb.active, project, data, header_font, header_fill, normal_font, center, right_align, thin_border, BLUE, ALT_ROW)
+    
+    # Fill Expenses sheet (Gastos)
+    _fill_excel_expenses(wb, data, header_font, header_fill, normal_font, label_font, center, right_align, thin_border, ALT_ROW)
+    
+    # Fill Labor/Roles sheet if any exist (Personal)
     if data["roles"]:
-        ws3 = wb.create_sheet("Personal")
-        ws3.column_dimensions["A"].width = 30
-        ws3.column_dimensions["B"].width = 22
-        for col, h in enumerate(["Rol", "Salario mensual (COP)"], start=1):
-            cell = ws3.cell(row=1, column=col, value=h)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = center
-            cell.border = thin_border
-        for row_idx, role in enumerate(data["roles"], start=2):
-            fill = PatternFill("solid", fgColor=ALT_ROW) if row_idx % 2 == 0 else None
-            c1 = ws3.cell(row=row_idx, column=1, value=role.name)
-            c2 = ws3.cell(row=row_idx, column=2, value=float(role.salary))
-            for c in (c1, c2):
-                c.font = normal_font
-                c.border = thin_border
-                if fill:
-                    c.fill = fill
-            c2.number_format = NUMBER_FORMAT
-            c2.alignment = right_align
+        _fill_excel_roles(wb, data, header_font, header_fill, normal_font, center, right_align, thin_border, ALT_ROW)
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -583,12 +601,24 @@ class ProjectRolesViewSet(viewsets.ModelViewSet):
     queryset = ProjectRole.objects.select_related(
         "project").all().order_by("id")
     serializer_class = ProjectRoleSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_authenticated:
+            return queryset.filter(project__owner=self.request.user)
+        return queryset
 
 
 class ExpensesViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.select_related(
         "project", "category", "user").all().order_by("id")
     serializer_class = ExpenseSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.user.is_authenticated:
+            return queryset.filter(project__owner=self.request.user)
+        return queryset
 
     def _save_and_sync(self, serializer):
         expense = serializer.save()
@@ -653,6 +683,28 @@ class RecommendationsViewSet(viewsets.ViewSet):
             x.get("priority", "Media"), 4))
 
         return Response({"results": all_results})
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        from core.models import Recommendation
+        try:
+            rec = Recommendation.objects.get(pk=pk)
+            rec.status = "approved"
+            rec.save()
+            return Response({"status": "approved", "message": "Recomendación aprobada correctamente."})
+        except Recommendation.DoesNotExist:
+            return Response({"error": "Recomendación no encontrada"}, status=404)
+
+    @action(detail=True, methods=["post"])
+    def discard(self, request, pk=None):
+        from core.models import Recommendation
+        try:
+            rec = Recommendation.objects.get(pk=pk)
+            rec.status = "discarded"
+            rec.save()
+            return Response({"status": "discarded", "message": "Recomendación descartada correctamente."})
+        except Recommendation.DoesNotExist:
+            return Response({"error": "Recomendación no encontrada"}, status=404)
 
 
 class PredictionsViewSet(viewsets.ViewSet):

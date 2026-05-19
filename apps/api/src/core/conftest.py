@@ -15,9 +15,11 @@ def api_client():
 @pytest.fixture
 def owner(db):
     user_model = get_user_model()
+    from django.utils.crypto import get_random_string
+    random_password = get_random_string(16)
     return user_model.objects.create_user(
         username="owner",
-        password="secret-123",
+        password=random_password,
         email="owner@example.com",
     )
 

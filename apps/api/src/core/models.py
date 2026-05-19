@@ -18,6 +18,7 @@ class Recommendation(models.Model):
   title = models.CharField(max_length=255)
   body = models.TextField()
   priority = models.CharField(max_length=50)
+  status = models.CharField(max_length=50, default="pending")
   created_at = models.DateTimeField(auto_now_add=True)
 
   class Meta:

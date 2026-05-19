@@ -202,7 +202,7 @@ interface ExpenseItemProps {
   projectId: string;
 }
 
-export function ExpenseItem({ expense, projectId }: ExpenseItemProps) {
+export function ExpenseItem({ expense, projectId }: Readonly<ExpenseItemProps>) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
@@ -259,7 +259,7 @@ interface RoleFormProps {
   projectId: string;
 }
 
-export function RoleForm({ projectId }: RoleFormProps) {
+export function RoleForm({ projectId }: Readonly<RoleFormProps>) {
   const roleFormId = useId();
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -354,7 +354,7 @@ interface RoleItemProps {
   projectId: string;
 }
 
-export function RoleItem({ role, projectId }: RoleItemProps) {
+export function RoleItem({ role, projectId }: Readonly<RoleItemProps>) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {

@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
-from core.models import Alert, Category, Expense, Project, ProjectRole
+from core.models import Alert, Category, Expense, Project, ProjectRole, Recommendation
+
+
+class RecommendationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recommendation
+        fields = ("id", "project", "title", "body", "priority", "status", "created_at")
 
 
 class ProjectRoleSerializer(serializers.ModelSerializer):
@@ -18,6 +24,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         max_digits=14, decimal_places=2, read_only=True)
     remaining_budget = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True)
+    approved_recommendations = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -35,7 +42,12 @@ class ProjectSerializer(serializers.ModelSerializer):
             "total_roles_cost",
             "total_spent",
             "remaining_budget",
+            "approved_recommendations",
         )
+
+    def get_approved_recommendations(self, obj):
+        recs = obj.recommendations_list.filter(status="approved")
+        return RecommendationSerializer(recs, many=True).data
 
     def validate(self, attrs):
         start_date = attrs.get("start_date", getattr(

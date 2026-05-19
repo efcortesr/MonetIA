@@ -18,25 +18,29 @@ function formatCOP(value: number) {
   return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
+function getCurrentTimestamp() {
+  return Date.now();
+}
+
 function Kpi({
   title,
   value,
   sub,
   tone,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   sub: string;
   tone: "neutral" | "warning" | "danger" | "success";
-}) {
-  const subCls =
-    tone === "danger"
-      ? "text-rose-600"
-      : tone === "warning"
-        ? "text-amber-600"
-        : tone === "success"
-          ? "text-emerald-600"
-          : "text-zinc-500";
+}>) {
+  let subCls = "text-zinc-500";
+  if (tone === "danger") {
+    subCls = "text-rose-600";
+  } else if (tone === "warning") {
+    subCls = "text-amber-600";
+  } else if (tone === "success") {
+    subCls = "text-emerald-600";
+  }
 
   return (
     <Card className="p-0">
@@ -53,9 +57,9 @@ function Kpi({
 
 export default async function ProjectDetailsPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ id: string }>;
-}) {
+}>) {
   const { id } = await params;
 
   const [project, roles, categories, alerts] = await Promise.all([
@@ -114,7 +118,7 @@ export default async function ProjectDetailsPage({
     const startObj = new Date(project.start_date).getTime();
     const endObj = new Date(project.end_date).getTime();
     if (endObj <= startObj) return 0;
-    const nowTs = Date.now();
+    const nowTs = getCurrentTimestamp();
     return Math.min(100, Math.max(0, ((nowTs - startObj) / (endObj - startObj)) * 100));
   })();
   const consumptionTone = consumedPct > timelinePct + 15 ? "danger" : "neutral";

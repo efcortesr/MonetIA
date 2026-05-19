@@ -8,7 +8,9 @@ function formatCOP(value: number) {
   return `COP ${value.toLocaleString("es-CO", { maximumFractionDigits: 0 })}`;
 }
 
-function ProgressBar({ value, tone }: Readonly<{ value: number; tone: "safe" | "warning" | "danger" }>) {
+type ProgressTone = "safe" | "warning" | "danger";
+
+function ProgressBar({ value, tone }: Readonly<{ value: number; tone: ProgressTone }>) {
   const pct = Math.max(0, Math.min(100, value));
   const colors = {
     safe:    "bg-emerald-500",
@@ -80,23 +82,23 @@ function ErrorState({ message }: Readonly<{ message: string }>) {
 }
 
 function getProjectCountLabel(count: number): string {
-  const plural = count !== 1 ? "s" : "";
+  const plural = count === 1 ? "" : "s";
   return `${count} proyecto${plural} encontrado${plural}.`;
 }
 
-function getSpentColorClass(tone: "safe" | "warning" | "danger"): string {
+function getSpentColorClass(tone: ProgressTone): string {
   if (tone === "danger") return "text-rose-600";
   if (tone === "warning") return "text-amber-600";
   return "text-zinc-700";
 }
 
-function getPctColorClass(tone: "safe" | "warning" | "danger"): string {
+function getPctColorClass(tone: ProgressTone): string {
   if (tone === "danger") return "text-rose-600";
   if (tone === "warning") return "text-amber-600";
   return "text-emerald-600";
 }
 
-function getProjectTone(pct: number): "safe" | "warning" | "danger" {
+function getProjectTone(pct: number): ProgressTone {
   if (pct >= 100) return "danger";
   if (pct >= 80) return "warning";
   return "safe";
@@ -132,15 +134,7 @@ export default async function ProjectsPage() {
             {subtitleText}
           </div>
         </div>
-        {result.error === null && (
-          <Link
-            id="new-project-btn"
-            href="/projects/new"
-            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
-          >
-            + Nuevo proyecto
-          </Link>
-        )}
+
       </div>
 
       {/* ── Error ── */}

@@ -4,6 +4,8 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
+CORE_PROJECT = 'core.project'
+
 
 class Migration(migrations.Migration):
 
@@ -64,7 +66,7 @@ class Migration(migrations.Migration):
                 ('probability_overrun', models.DecimalField(decimal_places=2, max_digits=5)),
                 ('recommendations', models.TextField()),
                 ('generated_at', models.DateTimeField(auto_now_add=True)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='predictions', to='core.project')),
+                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='predictions', to=CORE_PROJECT)),
             ],
             options={
                 'db_table': 'predictions',
@@ -81,7 +83,7 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(max_length=50)),
                 ('category', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='expenses', to='core.category')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='expenses', to=settings.AUTH_USER_MODEL)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='expenses', to='core.project')),
+                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='expenses', to=CORE_PROJECT)),
             ],
             options={
                 'db_table': 'expenses',
@@ -96,7 +98,7 @@ class Migration(migrations.Migration):
                 ('severity', models.CharField(max_length=50)),
                 ('is_read', models.BooleanField(default=False)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='alerts', to='core.project')),
+                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='alerts', to=CORE_PROJECT)),
             ],
             options={
                 'db_table': 'alerts',
@@ -111,7 +113,7 @@ class Migration(migrations.Migration):
                 ('format', models.CharField(max_length=20)),
                 ('file_url', models.URLField()),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reports', to='core.project')),
+                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reports', to=CORE_PROJECT)),
             ],
             options={
                 'db_table': 'reports',

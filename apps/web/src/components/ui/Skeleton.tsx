@@ -32,10 +32,11 @@ function getCellWidth(index: number, cols: number): string {
 
 /** Pre-built skeleton for the expense table rows */
 export function TableRowSkeleton({ cols = 5 }: Readonly<{ cols?: number }>) {
+  const columns = Array.from({ length: cols }, (_, i) => `col-skeleton-${i}`);
   return (
     <tr>
-      {Array.from({ length: cols }).map((_, i) => (
-        <td key={`skeleton-col-${i}`} className="px-6 py-4">
+      {columns.map((colId, i) => (
+        <td key={colId} className="px-6 py-4">
           <Skeleton className={`h-3 ${getCellWidth(i, cols)}`} />
         </td>
       ))}
