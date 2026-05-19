@@ -5,6 +5,25 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
+/** Lee el token de la cookie y lo agrega al header Authorization. */
+function getAuthToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split("; token=");
+  if (parts.length === 2) return parts.pop()?.split(";")[0] ?? null;
+  return null;
+}
+
+function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init.headers as Record<string, string>),
+  };
+  if (token) headers["Authorization"] = `Token ${token}`;
+  return fetch(url, { ...init, headers });
+}
+
 
 type Message = {
   id: number;
@@ -51,12 +70,6 @@ function fmtCOP(n: number | string) {
 
 function getTime() {
   return new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
-}
-
-let messageIdCounter = 0;
-function getUniqueId() {
-  messageIdCounter += 1;
-  return Date.now() + messageIdCounter;
 }
 
 function buildSystemPrompt(ctx: FinancialContext): string {
@@ -149,7 +162,7 @@ function getCookieValue(name: string) {
 
 async function ensureCsrfCookie(apiBase: string) {
   if (csrfReady) return;
-  await fetch(`${apiBase}/chat/csrf/`, {
+  await authFetch(`${apiBase}/chat/csrf/`, {
     method: "GET",
     credentials: "include",
   });
@@ -159,7 +172,7 @@ async function ensureCsrfCookie(apiBase: string) {
 async function callGemini(apiBase: string, userMessage: string): Promise<string> {
   await ensureCsrfCookie(apiBase);
   const csrfToken = getCookieValue("csrftoken");
-  const response = await fetch(`${apiBase}/chat/`, {
+  const response = await authFetch(`${apiBase}/chat/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -212,9 +225,9 @@ export default function ChatPage() {
   const fetchContext = useCallback(async () => {
     try {
       const [projRes, catRes, expRes] = await Promise.all([
-        fetch(`${API_BASE}/projects/`, { cache: "no-store" }),
-        fetch(`${API_BASE}/categories/`, { cache: "no-store" }),
-        fetch(`${API_BASE}/expenses/`, { cache: "no-store" }),
+        authFetch(`${API_BASE}/projects/`, { cache: "no-store" }),
+        authFetch(`${API_BASE}/categories/`, { cache: "no-store" }),
+        authFetch(`${API_BASE}/expenses/`, { cache: "no-store" }),
       ]);
       const projects = projRes.ok ? await projRes.json() : [];
       const categories = catRes.ok ? await catRes.json() : [];
@@ -226,7 +239,6 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContext().catch(() => {
       // context load failure is handled inside fetchContext
     });
@@ -261,7 +273,7 @@ export default function ChatPage() {
     setInput("");
     setIsLoading(true);
 
-    const userMsg: Message = { id: getUniqueId(), role: "user", text: msg, time: getTime() };
+    const userMsg: Message = { id: Date.now(), role: "user", text: msg, time: getTime() };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
@@ -270,7 +282,7 @@ export default function ChatPage() {
       const reply = await callGemini(API_BASE, msg);
       const pills = extractPills(msg, context);
       const botMsg: Message = {
-        id: getUniqueId(),
+        id: Date.now() + 1,
         role: "bot",
         text: reply,
         time: getTime(),
@@ -282,7 +294,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: getUniqueId(),
+          id: Date.now() + 1,
           role: "bot",
           text: `No pude procesar tu consulta. Verifica que el backend esté activo.\n\nError: ${errMsg}`,
           time: getTime(),

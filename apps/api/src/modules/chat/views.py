@@ -1,4 +1,5 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.views.decorators.http import require_POST, require_safe
@@ -6,6 +7,7 @@ from django.views.decorators.http import require_POST, require_safe
 from .services import FinancialChatService
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 @require_safe
 def chat_csrf_view(request):
     """
@@ -14,10 +16,12 @@ def chat_csrf_view(request):
     return Response({"detail": "CSRF cookie set."})
 
 @api_view(["POST"])
+@permission_classes([AllowAny])
 @require_POST
 def chat_query_view(request):
     """
     POST endpoint to interact with the financial chat assistant.
+    The user may or may not be authenticated; context is filtered accordingly.
     """
     question = (request.data.get("question") or "").strip()
     project_id = request.data.get("project_id")  # opcional

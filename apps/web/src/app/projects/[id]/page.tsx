@@ -212,7 +212,11 @@ export default async function ProjectDetailsPage({
 
       {/* ── Financial Dashboard (KPIs, Charts, Filters, Table) ── */}
       <section id="financial-dashboard" className="space-y-6">
-        <FinancialDashboard projectId={id} categories={categories} />
+        <FinancialDashboard
+          projectId={id}
+          categories={categories}
+          projectDateRange={{ start_date: project.start_date, end_date: project.end_date }}
+        />
       </section>
 
       {/* ── Recommendations IA ── */}

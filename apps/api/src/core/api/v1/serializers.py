@@ -96,6 +96,27 @@ class ExpenseSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, attrs):
+        project = attrs.get("project", getattr(self.instance, "project", None))
+        expense_date = attrs.get("date", getattr(self.instance, "date", None))
+
+        if project and expense_date:
+            if project.start_date and expense_date < project.start_date:
+                raise serializers.ValidationError(
+                    {"date": (
+                        f"La fecha del gasto ({expense_date}) no puede ser anterior "
+                        f"a la fecha de inicio del proyecto ({project.start_date})."
+                    )}
+                )
+            if project.end_date and expense_date > project.end_date:
+                raise serializers.ValidationError(
+                    {"date": (
+                        f"La fecha del gasto ({expense_date}) no puede ser posterior "
+                        f"a la fecha de fin del proyecto ({project.end_date})."
+                    )}
+                )
+        return attrs
+
 
 class AlertSerializer(serializers.ModelSerializer):
     class Meta:
