@@ -1,6 +1,5 @@
 import os
 import logging
-import traceback
 from decimal import Decimal
 from google import genai
 
@@ -171,9 +170,8 @@ PREGUNTA DEL USUARIO: {question}"""
 
             return text
 
-        except Exception as exc:
-            logger.error(f"Error Gemini chat: {exc}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+        except Exception:
+            logger.exception("Error Gemini chat")
             return (
                 "Ocurrió un error al procesar tu consulta. "
                 "Intenta de nuevo en unos momentos."
