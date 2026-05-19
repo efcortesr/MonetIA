@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 
 from core.models import Alert, Category, Expense, Project, ProjectRole, Recommendation
@@ -59,6 +61,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         if budget is not None and budget <= 0:
             raise serializers.ValidationError(
                 {"budget": "El presupuesto debe ser mayor que 0."})
+
+        # Solo valida en creación (instance es None), no en edición
+        if self.instance is None and start_date and start_date < date.today():
+            raise serializers.ValidationError(
+                {"start_date": "La fecha de inicio no puede ser anterior al día actual."}
+            )
 
         if start_date and end_date and end_date < start_date:
             raise serializers.ValidationError(
