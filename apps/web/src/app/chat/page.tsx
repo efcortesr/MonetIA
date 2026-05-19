@@ -162,11 +162,7 @@ function getCookieValue(name: string) {
 
 async function ensureCsrfCookie(apiBase: string) {
   if (csrfReady) return;
-<<<<<<< Updated upstream
-  await fetch(`${apiBase}/chat/`, {
-=======
   await authFetch(`${apiBase}/chat/csrf/`, {
->>>>>>> Stashed changes
     method: "GET",
     credentials: "include",
   });
@@ -257,8 +253,8 @@ export default function ChatPage() {
       return [];
     }
 
-    const spentTone = pct > 80 ? "danger" : "info";
-    let consumptionTone: Message["pills"][number]["tone"] = "success";
+    const spentTone: "info" | "success" | "warn" | "danger" | "neutral" = pct > 80 ? "danger" : "info";
+    let consumptionTone: "info" | "success" | "warn" | "danger" | "neutral" = "success";
     if (pct > 90) {
       consumptionTone = "danger";
     } else if (pct > 70) {
