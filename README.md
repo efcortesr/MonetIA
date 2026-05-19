@@ -85,8 +85,17 @@ Cada vez que descargues actualizaciones de la rama principal (`main` o la rama d
 
 ```powershell
 # En apps/api
+
 pip install -r requirements.txt
 
 # En apps/api/src
 python manage.py migrate
 ```
+---
+### Para ingresar al aplicativo 
+inicialmente puedes ingresar con el sleector de cuentas rapido (de preferencia al de Sara Arango). Tambien puede registrarse con google o crear una cuenta e iniciar sección,
+o puedes ingresar con:
+
+**Usuario:** shmetaute@gmail.com
+**Contraseña:** 2211
+
