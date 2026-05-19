@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -12,54 +13,111 @@ from core.models import Category, Project
 class ProjectManagementTests(APITestCase):
     def setUp(self):
         self.user_password = get_random_string(12)
+
         self.user = get_user_model().objects.create_user(
-            username="owner", password=self.user_password)
-        self.category = Category.objects.create(name="Infra", color="#000")
+            username="owner",
+            password=self.user_password
+        )
+
+        self.category = Category.objects.create(
+            name="Infra",
+            color="#000"
+        )
+
         self.client.force_authenticate(user=self.user)
 
     def test_create_and_update_project_budget(self):
+        start_date = date.today() + timedelta(days=1)
+        end_date = date.today() + timedelta(days=90)
+
         payload = {
-            "owner": self.user.id,
             "name": "Proyecto ERP",
             "description": "Implementación",
             "budget": "100000.00",
-            "start_date": "2026-01-01",
-            "end_date": "2026-12-31",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
             "status": "activo",
         }
+
         response = self.client.post(
-            reverse("projects-list"), payload, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["budget"], "100000.00")
+            reverse("projects-list"),
+            payload,
+            format="json"
+        )
+
+        print(response.data)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED
+        )
+
+        self.assertEqual(
+            response.data["budget"],
+            "100000.00"
+        )
 
         project_id = response.data["id"]
-        update = self.client.patch(reverse(
-            "projects-detail", args=[project_id]), {"budget": "120000.00"}, format="json")
-        self.assertEqual(update.status_code, status.HTTP_200_OK)
-        self.assertEqual(update.data["budget"], "120000.00")
+
+        update = self.client.patch(
+            reverse("projects-detail", args=[project_id]),
+            {"budget": "120000.00"},
+            format="json"
+        )
+
+        self.assertEqual(
+            update.status_code,
+            status.HTTP_200_OK
+        )
+
+        self.assertEqual(
+            update.data["budget"],
+            "120000.00"
+        )
 
     def test_roles_crud_and_budget_calculation(self):
+        start_date = date.today() + timedelta(days=1)
+        end_date = date.today() + timedelta(days=180)
+
         project = Project.objects.create(
             owner=self.user,
             name="Proyecto App",
             description="",
             budget=Decimal("10000.00"),
-            start_date="2026-01-01",
-            end_date="2026-06-01",
+            start_date=start_date,
+            end_date=end_date,
             status="activo",
         )
 
         role_response = self.client.post(
             reverse("project-roles-list"),
-            {"project": project.id, "name": "QA", "salary": "2500.00"},
+            {
+                "project": project.id,
+                "name": "QA",
+                "salary": "2500.00"
+            },
             format="json",
         )
-        self.assertEqual(role_response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(
+            role_response.status_code,
+            status.HTTP_201_CREATED
+        )
 
         role_id = role_response.data["id"]
-        role_update = self.client.patch(reverse(
-            "project-roles-detail", args=[role_id]), {"salary": "3000.00"}, format="json")
-        self.assertEqual(role_update.status_code, status.HTTP_200_OK)
+
+        role_update = self.client.patch(
+            reverse("project-roles-detail", args=[role_id]),
+            {"salary": "3000.00"},
+            format="json"
+        )
+
+        self.assertEqual(
+            role_update.status_code,
+            status.HTTP_200_OK
+        )
+
+        expense_date = start_date + timedelta(days=5)
 
         expense_response = self.client.post(
             reverse("expenses-list"),
@@ -69,22 +127,55 @@ class ProjectManagementTests(APITestCase):
                 "user": self.user.id,
                 "amount": "500.00",
                 "description": "Licencia",
-                "date": "2026-02-01",
+                "date": expense_date.isoformat(),
                 "receipt_url": "",
                 "status": "registrado",
             },
             format="json",
         )
-        self.assertEqual(expense_response.status_code, status.HTTP_201_CREATED)
+
+        print(expense_response.data)
+
+        self.assertEqual(
+            expense_response.status_code,
+            status.HTTP_201_CREATED
+        )
 
         project_data = self.client.get(
-            reverse("projects-detail", args=[project.id]), format="json")
-        self.assertEqual(project_data.status_code, status.HTTP_200_OK)
-        self.assertEqual(project_data.data["total_roles_cost"], "3000.00")
-        self.assertEqual(project_data.data["total_expenses"], "500.00")
-        self.assertEqual(project_data.data["total_spent"], "3500.00")
-        self.assertEqual(project_data.data["remaining_budget"], "6500.00")
+            reverse("projects-detail", args=[project.id]),
+            format="json"
+        )
+
+        self.assertEqual(
+            project_data.status_code,
+            status.HTTP_200_OK
+        )
+
+        self.assertEqual(
+            project_data.data["total_roles_cost"],
+            "3000.00"
+        )
+
+        self.assertEqual(
+            project_data.data["total_expenses"],
+            "500.00"
+        )
+
+        self.assertEqual(
+            project_data.data["total_spent"],
+            "3500.00"
+        )
+
+        self.assertEqual(
+            project_data.data["remaining_budget"],
+            "6500.00"
+        )
 
         role_delete = self.client.delete(
-            reverse("project-roles-detail", args=[role_id]))
-        self.assertEqual(role_delete.status_code, status.HTTP_204_NO_CONTENT)
+            reverse("project-roles-detail", args=[role_id])
+        )
+
+        self.assertEqual(
+            role_delete.status_code,
+            status.HTTP_204_NO_CONTENT
+        )
