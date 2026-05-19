@@ -24,8 +24,8 @@ export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
           </svg>
         </button>
 
-        {/* Logo solo visible en móvil (el sidebar está oculto) */}
-        <div className="flex items-center gap-2 md:hidden">
+        {/* Logo visible */}
+        <div className="flex items-center gap-2">
           <div className="grid h-7 w-7 place-items-center rounded-lg bg-blue-600 text-xs font-bold text-white shrink-0">
             M
           </div>
