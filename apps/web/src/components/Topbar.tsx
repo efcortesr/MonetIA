@@ -8,11 +8,21 @@ interface TopbarProps {
   onMenuClick?: () => void;
 }
 
-function getCookieValue(name: string) {
-  if (typeof document === "undefined") return null;
-  const regex = new RegExp(`(^|; )${name}=([^;]*)`);
-  const match = regex.exec(document.cookie);
-  return match ? decodeURIComponent(match[2]) : null;
+function getAllCookies(): Record<string, string> {
+  if (typeof document === "undefined") return {};
+  const result: Record<string, string> = {};
+  document.cookie.split(";").forEach((cookie) => {
+    const idx = cookie.indexOf("=");
+    if (idx === -1) return;
+    const key = cookie.slice(0, idx).trim();
+    const val = cookie.slice(idx + 1).trim();
+    try {
+      result[key] = decodeURIComponent(val);
+    } catch {
+      result[key] = val;
+    }
+  });
+  return result;
 }
 
 export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
@@ -20,10 +30,34 @@ export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const name = getCookieValue("userName");
-    const email = getCookieValue("userEmail");
-    setUserName(name);
-    setUserEmail(email);
+    const updateUserInfo = () => {
+      const cookies = getAllCookies();
+      const name = cookies["userName"] ?? null;
+      const email = cookies["userEmail"] ?? null;
+      
+      console.log("[Topbar] Verificando cookies:", { name, email, allCookies: cookies });
+      
+      setUserName(name);
+      setUserEmail(email);
+    };
+
+    // Actualizar al montar
+    updateUserInfo();
+
+    // Monitoreo más agresivo: cada 200ms
+    const interval = setInterval(updateUserInfo, 200);
+
+    // Escuchar eventos de almacenamiento
+    window.addEventListener("storage", updateUserInfo);
+    
+    // También re-verificar cuando la visibilidad cambia
+    document.addEventListener("visibilitychange", updateUserInfo);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", updateUserInfo);
+      document.removeEventListener("visibilitychange", updateUserInfo);
+    };
   }, []);
 
   const getInitials = (name: string | null) => {
@@ -34,6 +68,11 @@ export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getFirstName = (name: string | null) => {
+    if (!name) return null;
+    return name.split(" ")[0];
   };
 
   return (
@@ -66,15 +105,27 @@ export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
 
         {/* ── Acciones ── */}
         <div className="flex items-center gap-3 ml-auto md:ml-0">
-          {userName && (
+          {userName || userEmail ? (
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-                {getInitials(userName)}
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white shrink-0">
+                {getInitials(userName || userEmail)}
               </div>
-              <span className="text-sm font-medium text-zinc-900 whitespace-nowrap">Hola, {userName}</span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-medium text-zinc-900 whitespace-nowrap">
+                  ¡Hola, {getFirstName(userName || userEmail?.split('@')[0] || null)}! 👋
+                </span>
+                <span className="text-[10px] text-zinc-400 hidden sm:block truncate max-w-[160px]">
+                  {userEmail}
+                </span>
+              </div>
+            </div>
+          ) : (
+            // Fallback mientras no carga el nombre
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-xs font-bold text-zinc-500 shrink-0">
+              U
             </div>
           )}
-          
+
           <button
             onClick={async () => { await logoutAction(); }}
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-rose-500 hover:bg-rose-100 hover:text-rose-700 transition-colors cursor-pointer whitespace-nowrap"
@@ -84,7 +135,7 @@ export function Topbar({ onMenuClick }: Readonly<TopbarProps>) {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            Cerrar sesión
+            <span className="hidden sm:inline">Cerrar sesión</span>
           </button>
 
           <Link
