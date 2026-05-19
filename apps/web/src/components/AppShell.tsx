@@ -64,7 +64,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       <Link
         href="/chat"
         className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 z-50"
-        title="Abrir asistente IA"
+        title="Consultas financieras"
       >
         <svg
           width="22"
