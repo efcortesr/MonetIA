@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import pytest
 from django.urls import reverse
 
@@ -6,36 +8,51 @@ from core.models import Project, Recommendation
 
 @pytest.mark.django_db
 def test_create_project_with_valid_data(authenticated_client, owner):
+    start_date = date.today() + timedelta(days=1)
+    end_date = date.today() + timedelta(days=30)
+
     payload = {
         "name": "Proyecto Alpha",
         "description": "Implementacion de plataforma",
         "budget": "25000.00",
-        "start_date": "2026-03-01",
-        "end_date": "2026-10-31",
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "status": "activo",
     }
 
     response = authenticated_client.post(
-        reverse("projects-list"), payload, format="json")
+        reverse("projects-list"), payload, format="json"
+    )
+
+    print(response.data)
 
     assert response.status_code == 201
     assert response.data["name"] == payload["name"]
-    assert Project.objects.filter(name=payload["name"], owner=owner).exists()
+    assert Project.objects.filter(
+        name=payload["name"],
+        owner=owner
+    ).exists()
 
 
 @pytest.mark.django_db
 def test_create_project_with_invalid_data(authenticated_client):
+    start_date = date.today() + timedelta(days=30)
+    end_date = date.today() + timedelta(days=1)
+
     payload = {
         "name": "Proyecto Invalido",
         "description": "No debe crearse",
         "budget": "0.00",
-        "start_date": "2026-11-01",
-        "end_date": "2026-10-01",
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "status": "activo",
     }
 
     response = authenticated_client.post(
-        reverse("projects-list"), payload, format="json")
+        reverse("projects-list"), payload, format="json"
+    )
+
+    print(response.data)
 
     assert response.status_code == 400
     assert "budget" in response.data or "end_date" in response.data
