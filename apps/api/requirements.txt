@@ -8,3 +8,7 @@ openpyxl==3.1.5
 pytest
 pytest-django
 coverage
+gunicorn
+whitenoise
+dj-database-url
+psycopg2-binary
