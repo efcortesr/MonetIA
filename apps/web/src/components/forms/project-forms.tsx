@@ -13,6 +13,7 @@ interface ExpenseFormProps {
   categories: ApiCategory[];
   mode?: "create" | "edit";
   initialData?: ApiExpense;
+  projectDateRange?: { start_date: string; end_date: string };
   onSuccess?: () => void;
   onCancel?: () => void;
 }
@@ -22,6 +23,7 @@ export function ExpenseForm({
   categories,
   mode = "create",
   initialData,
+  projectDateRange,
   onSuccess,
   onCancel,
 }: Readonly<ExpenseFormProps>) {
@@ -31,6 +33,7 @@ export function ExpenseForm({
   const isEdit = mode === "edit";
   const [showForm, setShowForm] = useState(isEdit);
   const [isPending, startTransition] = useTransition();
+  const [dateError, setDateError] = useState<string | null>(null);
   let submitLabel = "Registrar gasto";
   if (isEdit) {
     submitLabel = "Guardar cambios";
@@ -41,13 +44,20 @@ export function ExpenseForm({
 
   const handleSubmit = async (formData: FormData) => {
     formData.set("projectId", projectId);
+    setDateError(null);
 
     startTransition(async () => {
+      let result: { data: unknown; error: string | null };
       if (isEdit) {
         if (!initialData) return;
-        await updateExpenseAction(initialData.id, formData);
+        result = await updateExpenseAction(initialData.id, formData);
       } else {
-        await createExpenseAction(formData);
+        result = await createExpenseAction(formData);
+      }
+
+      if (result.error) {
+        setDateError(result.error);
+        return;
       }
 
       router.refresh();
@@ -132,6 +142,11 @@ export function ExpenseForm({
             <div>
               <label htmlFor={`${expenseFormId}-date`} className="block text-sm font-medium text-zinc-700 mb-1">
                 Fecha
+                {projectDateRange && (
+                  <span className="ml-2 text-xs text-zinc-400 font-normal">
+                    ({projectDateRange.start_date} → {projectDateRange.end_date})
+                  </span>
+                )}
               </label>
               <input
                 type="date"
@@ -139,8 +154,15 @@ export function ExpenseForm({
                 name="date"
                 required
                 defaultValue={initialData?.date}
-                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                min={projectDateRange?.start_date}
+                max={projectDateRange?.end_date}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                  dateError ? "border-rose-400 bg-rose-50" : "border-zinc-300"
+                }`}
               />
+              {dateError && (
+                <p className="mt-1 text-xs text-rose-600">{dateError}</p>
+              )}
             </div>
           </div>
 

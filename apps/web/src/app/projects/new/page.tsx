@@ -7,14 +7,19 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { createProject } from "@/lib/projects-api";
 
+function getTodayISO() {
+  return new Date().toISOString().split("T")[0];
+}
+
 export default function NewProjectPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [budgetDisplay, setBudgetDisplay] = useState("");
   const [budgetRaw, setBudgetRaw] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const today = getTodayISO();
 
   const formatNumber = (val: string) => {
-    // Remove non-numeric characters except for formatting
     const numericValue = val.replaceAll(/\D/g, "");
     if (!numericValue) return "";
     return Number(numericValue).toLocaleString("es-CO");
@@ -30,23 +35,25 @@ export default function NewProjectPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
-    
+    setError(null);
+
     const formData = new FormData(e.currentTarget);
-    
+
     try {
       const project = {
         name: formData.get("name") as string,
-        description: formData.get("description") as string || "",
+        description: (formData.get("description") as string) || "",
         budget: budgetRaw.toString(),
         start_date: formData.get("start_date") as string,
         end_date: formData.get("end_date") as string,
         status: "planning",
       };
-      
+
       const result = await createProject(project);
       router.push(`/projects/${result.id}`);
-    } catch (error) {
-      console.error("Error creating project:", error);
+    } catch (err) {
+      console.error("Error creating project:", err);
+      setError("No se pudo crear el proyecto. Verifica los datos e intenta de nuevo.");
       setIsSubmitting(false);
     }
   }
@@ -63,12 +70,22 @@ export default function NewProjectPage() {
         </div>
       </div>
 
+      {error && (
+        <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <span className="text-rose-600 font-bold text-lg">!</span>
+          <div className="text-sm text-rose-700">{error}</div>
+        </div>
+      )}
+
       <Card className="p-0">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-zinc-700 mb-1">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-zinc-700 mb-1"
+                >
                   Nombre del proyecto *
                 </label>
                 <input
@@ -82,7 +99,10 @@ export default function NewProjectPage() {
               </div>
 
               <div>
-                <label htmlFor="budget" className="block text-sm font-medium text-zinc-700 mb-1">
+                <label
+                  htmlFor="budget"
+                  className="block text-sm font-medium text-zinc-700 mb-1"
+                >
                   Presupuesto (COP) *
                 </label>
                 <input
@@ -97,7 +117,10 @@ export default function NewProjectPage() {
               </div>
 
               <div>
-                <label htmlFor="start_date" className="block text-sm font-medium text-zinc-700 mb-1">
+                <label
+                  htmlFor="start_date"
+                  className="block text-sm font-medium text-zinc-700 mb-1"
+                >
                   Fecha de inicio *
                 </label>
                 <input
@@ -105,12 +128,16 @@ export default function NewProjectPage() {
                   id="start_date"
                   name="start_date"
                   required
+                  defaultValue={today}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label htmlFor="end_date" className="block text-sm font-medium text-zinc-700 mb-1">
+                <label
+                  htmlFor="end_date"
+                  className="block text-sm font-medium text-zinc-700 mb-1"
+                >
                   Fecha de fin *
                 </label>
                 <input
@@ -118,6 +145,7 @@ export default function NewProjectPage() {
                   id="end_date"
                   name="end_date"
                   required
+                  min={today}
                   className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -125,7 +153,10 @@ export default function NewProjectPage() {
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-zinc-700 mb-1">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-zinc-700 mb-1"
+                >
                   Descripción
                 </label>
                 <textarea
@@ -146,7 +177,7 @@ export default function NewProjectPage() {
             >
               Cancelar
             </Link>
-            
+
             <div className="flex gap-3">
               <button
                 type="submit"

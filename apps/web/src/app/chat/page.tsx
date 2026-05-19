@@ -5,6 +5,25 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
+/** Lee el token de la cookie y lo agrega al header Authorization. */
+function getAuthToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split("; token=");
+  if (parts.length === 2) return parts.pop()?.split(";")[0] ?? null;
+  return null;
+}
+
+function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init.headers as Record<string, string>),
+  };
+  if (token) headers["Authorization"] = `Token ${token}`;
+  return fetch(url, { ...init, headers });
+}
+
 
 type Message = {
   id: number;
@@ -143,7 +162,11 @@ function getCookieValue(name: string) {
 
 async function ensureCsrfCookie(apiBase: string) {
   if (csrfReady) return;
+<<<<<<< Updated upstream
   await fetch(`${apiBase}/chat/`, {
+=======
+  await authFetch(`${apiBase}/chat/csrf/`, {
+>>>>>>> Stashed changes
     method: "GET",
     credentials: "include",
   });
@@ -153,7 +176,7 @@ async function ensureCsrfCookie(apiBase: string) {
 async function callGemini(apiBase: string, userMessage: string): Promise<string> {
   await ensureCsrfCookie(apiBase);
   const csrfToken = getCookieValue("csrftoken");
-  const response = await fetch(`${apiBase}/chat/`, {
+  const response = await authFetch(`${apiBase}/chat/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -206,9 +229,9 @@ export default function ChatPage() {
   const fetchContext = useCallback(async () => {
     try {
       const [projRes, catRes, expRes] = await Promise.all([
-        fetch(`${API_BASE}/projects/`, { cache: "no-store" }),
-        fetch(`${API_BASE}/categories/`, { cache: "no-store" }),
-        fetch(`${API_BASE}/expenses/`, { cache: "no-store" }),
+        authFetch(`${API_BASE}/projects/`, { cache: "no-store" }),
+        authFetch(`${API_BASE}/categories/`, { cache: "no-store" }),
+        authFetch(`${API_BASE}/expenses/`, { cache: "no-store" }),
       ]);
       const projects = projRes.ok ? await projRes.json() : [];
       const categories = catRes.ok ? await catRes.json() : [];

@@ -52,9 +52,11 @@ type StatCardProps = {
 export default function FinancialDashboard({
   projectId,
   categories,
+  projectDateRange,
 }: Readonly<{
   projectId: string;
   categories: ApiCategory[];
+  projectDateRange?: { start_date: string; end_date: string };
 }>) {
   const [data, setData] = useState<ApiFinancialDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,6 +138,7 @@ export default function FinancialDashboard({
             projectId={projectId}
             categories={categories}
             mode="create"
+            projectDateRange={projectDateRange}
             onSuccess={() => {
               fetchDashboard();
               addToast("✓ Gasto registrado correctamente");
@@ -442,6 +445,7 @@ export default function FinancialDashboard({
               categories={categories}
               mode="edit"
               initialData={editingExpense}
+              projectDateRange={projectDateRange}
               onSuccess={() => {
                 setEditingExpense(null);
                 fetchDashboard();

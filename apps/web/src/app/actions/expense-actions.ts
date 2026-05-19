@@ -18,17 +18,33 @@ export async function createExpenseAction(formData: FormData) {
     status: "registrado",
   };
 
-  const result = await apiFetch<ApiExpense>("/expenses/", {
-    method: "POST",
-    body: JSON.stringify(expense),
-  });
+  try {
+    const result = await apiFetch<ApiExpense>("/expenses/", {
+      method: "POST",
+      body: JSON.stringify(expense),
+    });
 
-  // Revalidate the project page so totals update immediately
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/projects");
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/projects");
 
-  return result;
+    return { data: result, error: null };
+  } catch (err: unknown) {
+    const raw = err instanceof Error ? err.message : "Error desconocido";
+    // Extract DRF validation error message from JSON if present
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    let message = raw;
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const dateMsg = parsed?.date;
+        message = Array.isArray(dateMsg) ? dateMsg[0] : (dateMsg ?? raw);
+      } catch {
+        // keep raw
+      }
+    }
+    return { data: null, error: message };
+  }
 }
 
 export async function updateExpenseAction(expenseId: number, formData: FormData) {
@@ -45,16 +61,32 @@ export async function updateExpenseAction(expenseId: number, formData: FormData)
     status: "registrado",
   };
 
-  const result = await apiFetch<ApiExpense>(`/expenses/${expenseId}/`, {
-    method: "PUT",
-    body: JSON.stringify(expense),
-  });
+  try {
+    const result = await apiFetch<ApiExpense>(`/expenses/${expenseId}/`, {
+      method: "PUT",
+      body: JSON.stringify(expense),
+    });
 
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/projects");
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/projects");
 
-  return result;
+    return { data: result, error: null };
+  } catch (err: unknown) {
+    const raw = err instanceof Error ? err.message : "Error desconocido";
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    let message = raw;
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const dateMsg = parsed?.date;
+        message = Array.isArray(dateMsg) ? dateMsg[0] : (dateMsg ?? raw);
+      } catch {
+        // keep raw
+      }
+    }
+    return { data: null, error: message };
+  }
 }
 
 export async function deleteExpenseAction(expenseId: number, projectId: string) {

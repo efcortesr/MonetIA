@@ -20,21 +20,44 @@ class FinancialChatService:
         self.client = genai.Client(
             api_key=self.api_key) if self.api_key and not self.use_mock else None
 
-    def _build_context(self, project_id=None) -> str:
+    def _build_user_profile(self, user) -> str:
+        """Builds a user profile string for the chat context."""
+        if not user or not user.is_authenticated:
+            return "Usuario: No autenticado"
+        name = user.get_full_name() or user.first_name or user.username
+        role = "Sin rol definido"
+        try:
+            role = user.profile.role
+        except Exception:
+            pass
+        lines = [
+            "PERFIL DEL USUARIO:",
+            f"- Nombre: {name}",
+            f"- Correo: {user.email}",
+            f"- Rol en la plataforma: {role}",
+        ]
+        return "\n".join(lines)
+
+    def _build_context(self, project_id=None, user=None) -> str:
         expenses_prefetch = Prefetch(
             "expenses",
             queryset=Expense.objects.select_related("category"),
             to_attr="prefetched_expenses",
         )
         base_qs = Project.objects.prefetch_related(expenses_prefetch, "roles")
+        if user and user.is_authenticated:
+            base_qs = base_qs.filter(owner=user)
+
         qs = base_qs.filter(pk=project_id) if project_id else base_qs.all()
 
+        user_profile = self._build_user_profile(user)
+
         if not qs.exists():
-            return "No hay proyectos registrados en el sistema."
+            return f"{user_profile}\n\nNo hay proyectos registrados en el sistema."
 
         total_budget = Decimal("0")
         total_spent = Decimal("0")
-        lines = []
+        lines = [user_profile, ""]
 
         for p in qs:
             budget = p.budget
@@ -50,7 +73,8 @@ class FinancialChatService:
                 f"presupuesto=COP {budget:,.0f}, "
                 f"gastado=COP {spent:,.0f}, "
                 f"restante=COP {remaining:,.0f}, "
-                f"consumo={pct:.1f}%, estado={p.status}"
+                f"consumo={pct:.1f}%, estado={p.status}, "
+                f"periodo={p.start_date} \u2192 {p.end_date}"
             )
 
             # Gastos por categoría dentro del proyecto
@@ -64,7 +88,7 @@ class FinancialChatService:
             for cat_name, cat_total in sorted(
                 cat_totals.items(), key=lambda x: x[1], reverse=True
             ):
-                lines.append(f"    • {cat_name}: COP {cat_total:,.0f}")
+                lines.append(f"    \u2022 {cat_name}: COP {cat_total:,.0f}")
 
         lines.append("")
         lines.append("RESUMEN GLOBAL:")
@@ -74,15 +98,20 @@ class FinancialChatService:
 
         return "\n".join(lines)
 
-    def _build_prompt(self, question: str, project_id=None) -> str:
-        context = self._build_context(project_id)
-        return f"""Eres un asistente financiero experto integrado en MonetIA.
+    def _build_prompt(self, question: str, project_id=None, user=None) -> str:
+        context = self._build_context(project_id, user)
+        user_name = ""
+        if user and user.is_authenticated:
+            user_name = user.get_full_name() or user.first_name or user.username
+        greeting = f"Estás ayudando a {user_name}." if user_name else ""
+        return f"""Eres un asistente financiero experto integrado en MonetIA. {greeting}
 
 DATOS ACTUALES DEL SISTEMA:
 {context}
 
 INSTRUCCIONES:
 - Responde SIEMPRE en español, de forma clara y concisa.
+- Dirige tu respuesta al usuario por su nombre cuando sea natural hacerlo.
 - Usa formato COP con puntos de miles para los montos.
 - Si detectas consumo mayor al 80%, menciona el riesgo.
 - Máximo 4 oraciones salvo que el usuario pida más detalle.
@@ -104,7 +133,7 @@ PREGUNTA DEL USUARIO: {question}"""
         else:
             return "He procesado tu consulta. ¿Hay algo más específico sobre tu información financiera que desees conocer?"
 
-    def answer(self, question: str, project_id=None) -> str:
+    def answer(self, question: str, project_id=None, user=None) -> str:
 
         if not question or not question.strip():
             return "Por favor, ingresa una pregunta válida."
@@ -126,7 +155,7 @@ PREGUNTA DEL USUARIO: {question}"""
             )
 
         try:
-            prompt = self._build_prompt(question, project_id)
+            prompt = self._build_prompt(question, project_id, user)
             logger.info(
                 f"[GEMINI] Prompt construido, enviando a {self.model}...")
             response = self.client.models.generate_content(
@@ -140,7 +169,7 @@ PREGUNTA DEL USUARIO: {question}"""
             if not text:
                 return "No se pudo generar una respuesta"
 
-            return text  # ← AGREGA ESTA LÍNEA
+            return text
 
         except Exception as exc:
             logger.error(f"Error Gemini chat: {exc}")
